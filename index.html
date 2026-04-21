@@ -722,7 +722,8 @@ function closeDiscDrop(){
 document.addEventListener('click',e=>{
   const wrap=document.getElementById('walletWrap');
   const panel=document.getElementById('wsPanel');
-  if(!wrap.contains(e.target)&&!panel.contains(e.target)) closeDiscDrop();
+  const backdrop=document.getElementById('wsBackdrop');
+  if(discOpen && !wrap.contains(e.target) && !panel.contains(e.target) && !backdrop.contains(e.target)) closeDiscDrop();
 });
 
 function copyAddress(){
@@ -841,21 +842,21 @@ async function fetchBalance(){
 async function fetchAllTokens(){
   if(!wallet) return;
   const list = document.getElementById('wsTokenList');
-  list.innerHTML = '<div class="ws-loading">Loading tokens…</div>';
+  list.innerHTML = '<div class="ws-loading">Loading tokens\u2026</div>';
   const pub = wallet.toBase58();
   const rows = [];
 
   try{
-    // SOL balance
     const solResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getBalance',params:[pub,{commitment:'confirmed'}]})});
     const solJson = await solResp.json();
     const solBal = (solJson?.result?.value||0)/1e9;
-    rows.push({symbol:'SOL',name:'Solana',balance:solBal,logo:'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png',isSol:true});
+    rows.push({symbol:'SOL',name:'Solana',balance:solBal,
+      logo:'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png',
+      isSol:true});
   }catch(e){}
 
   try{
-    // All SPL tokens
     const tokResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({jsonrpc:'2.0',id:2,method:'getTokenAccountsByOwner',
         params:[pub,{programId:'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'},{encoding:'jsonParsed',commitment:'confirmed'}]})});
@@ -866,10 +867,10 @@ async function fetchAllTokens(){
       const bal = parseFloat(info.tokenAmount.uiAmount||0);
       if(bal<=0) continue;
       const mint = info.mint;
-      let symbol=mint.slice(0,4)+'…', name='Unknown', logo='';
-      // fetch metadata from Jupiter token list
+      let symbol=mint.slice(0,4)+'\u2026', name='Unknown', logo='';
       try{
-        const meta = await fetch(\`https://tokens.jup.ag/token/\${mint}\`);
+        const metaUrl = 'https://tokens.jup.ag/token/' + mint;
+        const meta = await fetch(metaUrl);
         if(meta.ok){ const m=await meta.json(); symbol=m.symbol||symbol; name=m.name||name; logo=m.logoURI||''; }
       }catch{}
       rows.push({symbol,name,balance:bal,logo,mint,isUranus:mint===URANUS_MINT});
@@ -878,25 +879,27 @@ async function fetchAllTokens(){
 
   if(rows.length===0){ list.innerHTML='<div class="ws-loading">No tokens found</div>'; return; }
 
-  // Sort: SOL first, URANUS second, rest alphabetical
   rows.sort((a,b)=>{
     if(a.isSol) return -1; if(b.isSol) return 1;
     if(a.isUranus) return -1; if(b.isUranus) return 1;
     return a.symbol.localeCompare(b.symbol);
   });
 
-  list.innerHTML = rows.map(r=>`
-    <div class="ws-token-row${r.isUranus?' uranus-row':''}">
-      <div class="ws-tok-icon">
-        ${r.logo?`<img src="${r.logo}" alt="${r.symbol}" onerror="this.parentElement.textContent='${r.symbol.slice(0,2)}'">`:`${r.symbol.slice(0,2)}`}
-      </div>
-      <div class="ws-tok-info">
-        <div class="ws-tok-name">${r.symbol}${r.isUranus?' ✦':''}</div>
-        <div class="ws-tok-mint">${r.name}</div>
-      </div>
-      <div class="ws-tok-bal${r.isSol?' sol':''}">${r.balance.toLocaleString(undefined,{maximumFractionDigits:4})}</div>
-    </div>`).join('');
+  list.innerHTML = rows.map(function(r){
+    const iconHtml = r.logo
+      ? '<img src="'+r.logo+'" alt="'+r.symbol+'" onerror="this.parentElement.textContent=\''+r.symbol.slice(0,2)+'\'">'
+      : r.symbol.slice(0,2);
+    return '<div class="ws-token-row'+(r.isUranus?' uranus-row':'')+'">'+
+      '<div class="ws-tok-icon">'+iconHtml+'</div>'+
+      '<div class="ws-tok-info">'+
+        '<div class="ws-tok-name">'+r.symbol+(r.isUranus?' \u2726':'')+'</div>'+
+        '<div class="ws-tok-mint">'+r.name+'</div>'+
+      '</div>'+
+      '<div class="ws-tok-bal'+(r.isSol?' sol':'')+'">'+r.balance.toLocaleString(undefined,{maximumFractionDigits:4})+'</div>'+
+    '</div>';
+  }).join('');
 }
+
 
 async function fetchStats(){
   try{ const r=await fetch(`https://api.solscan.io/token/holders?tokenAddress=${URANUS_MINT}&offset=0&size=1`); const j=await r.json(); if(j.data?.total) document.getElementById('hStat').textContent=Number(j.data.total).toLocaleString(); }catch{}
