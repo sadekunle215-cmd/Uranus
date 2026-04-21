@@ -696,6 +696,7 @@ async function connectWallet(walletDef){
     conn = new Connection('https://api.mainnet-beta.solana.com','confirmed');
     renderWallet(true);
     await fetchBalance();
+    renderWallet(true); // re-apply after async balance fetch
     fetchStats();
   }catch(e){ setStatus('err','Connection rejected.'); }
 }
@@ -751,6 +752,8 @@ function renderWallet(connected){
       document.getElementById('discIcon').src = URL.createObjectURL(svgBlob);
     }
     ovl.classList.add('hide'); ovl.style.display='none'; sbtn.disabled=false;
+    // Force repaint on mobile
+    setTimeout(()=>{ ovl.classList.add('hide'); ovl.style.display='none'; }, 100);
   } else {
     btn.innerHTML='Connect Wallet'; btn.classList.remove('connected');
     ovl.classList.remove('hide'); ovl.style.display=''; sbtn.disabled=true;
@@ -977,7 +980,8 @@ async function doStake(){
 
     setBtnTxt('<span class="spin"></span>Broadcasting…');
     setStatus('info','Sending to network…');
-    const rawTx = Buffer.from(signed.serialize()).toString('base64');
+    const serialized = signed.serialize();
+    const rawTx = btoa(String.fromCharCode(...serialized));
     const sendResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({jsonrpc:'2.0',id:3,method:'sendTransaction',
         params:[rawTx,{encoding:'base64',skipPreflight:false,maxRetries:3}]})});
