@@ -693,7 +693,7 @@ async function connectWallet(walletDef){
     wallet     = res.publicKey;
     provider   = prov;
     activeWalletDef = walletDef;
-    conn = new Connection(RPC,'confirmed');
+    conn = new Connection('https://api.mainnet-beta.solana.com','confirmed');
     renderWallet(true);
     await fetchBalance();
     fetchStats();
@@ -747,8 +747,8 @@ function renderWallet(connected){
     document.getElementById('discAddrTxt').textContent=s;
     // Set wallet icon in dropdown
     if(activeWalletDef){
-      const encoded = btoa(unescape(encodeURIComponent(activeWalletDef.icon)));
-      document.getElementById('discIcon').src=`data:image/svg+xml;base64,${encoded}`;
+      const svgBlob = new Blob([activeWalletDef.icon], {type:'image/svg+xml'});
+      document.getElementById('discIcon').src = URL.createObjectURL(svgBlob);
     }
     ovl.classList.add('hide'); ovl.style.display='none'; sbtn.disabled=false;
   } else {
@@ -842,42 +842,42 @@ async function fetchBalance(){
 async function fetchAllTokens(){
   if(!wallet) return;
   const list = document.getElementById('wsTokenList');
-  list.innerHTML = '<div class="ws-loading">Loading tokens\u2026</div>';
+  list.innerHTML = '<div class="ws-loading">Loading\u2026</div>';
   const pub = wallet.toBase58();
   const rows = [];
 
+  // SOL balance
   try{
-    const solResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getBalance',params:[pub,{commitment:'confirmed'}]})});
-    const solJson = await solResp.json();
-    const solBal = (solJson?.result?.value||0)/1e9;
-    rows.push({symbol:'SOL',name:'Solana',balance:solBal,
-      logo:'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png',
-      isSol:true});
-  }catch(e){}
+    const j = await r.json();
+    const solBal = ((j?.result?.value)||0)/1e9;
+    rows.push({symbol:'SOL',name:'Solana',balance:solBal,logo:'https://solana.com/favicon.ico',isSol:true,isUranus:false});
+  }catch(e){ console.warn('SOL balance error',e); }
 
+  // SPL tokens
   try{
-    const tokResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({jsonrpc:'2.0',id:2,method:'getTokenAccountsByOwner',
         params:[pub,{programId:'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'},{encoding:'jsonParsed',commitment:'confirmed'}]})});
-    const tokJson = await tokResp.json();
-    const accounts = tokJson?.result?.value||[];
+    const j = await r.json();
+    const accounts = j?.result?.value || [];
     for(const acc of accounts){
       const info = acc.account.data.parsed.info;
-      const bal = parseFloat(info.tokenAmount.uiAmount||0);
-      if(bal<=0) continue;
+      const bal = parseFloat(info.tokenAmount.uiAmount || 0);
+      if(bal <= 0) continue;
       const mint = info.mint;
-      let symbol=mint.slice(0,4)+'\u2026', name='Unknown', logo='';
-      try{
-        const metaUrl = 'https://tokens.jup.ag/token/' + mint;
-        const meta = await fetch(metaUrl);
-        if(meta.ok){ const m=await meta.json(); symbol=m.symbol||symbol; name=m.name||name; logo=m.logoURI||''; }
-      }catch{}
-      rows.push({symbol,name,balance:bal,logo,mint,isUranus:mint===URANUS_MINT});
+      const isUranus = mint === URANUS_MINT;
+      const symbol = isUranus ? 'URANUS' : (mint.slice(0,4).toUpperCase() + '\u2026');
+      const name = isUranus ? 'Uranus Token' : mint.slice(0,8)+'...'+mint.slice(-4);
+      rows.push({symbol, name, balance:bal, logo:'', mint, isSol:false, isUranus});
     }
-  }catch(e){}
+  }catch(e){ console.warn('SPL tokens error',e); }
 
-  if(rows.length===0){ list.innerHTML='<div class="ws-loading">No tokens found</div>'; return; }
+  if(rows.length === 0){
+    list.innerHTML = '<div class="ws-loading">No tokens found</div>';
+    return;
+  }
 
   rows.sort((a,b)=>{
     if(a.isSol) return -1; if(b.isSol) return 1;
@@ -886,17 +886,18 @@ async function fetchAllTokens(){
   });
 
   list.innerHTML = rows.map(function(r){
+    const initials = r.symbol.slice(0,2);
     const iconHtml = r.logo
-      ? '<img src="'+r.logo+'" alt="'+r.symbol+'" onerror="this.parentElement.textContent=\''+r.symbol.slice(0,2)+'\'">'
-      : r.symbol.slice(0,2);
-    return '<div class="ws-token-row'+(r.isUranus?' uranus-row':'')+'">'+
-      '<div class="ws-tok-icon">'+iconHtml+'</div>'+
-      '<div class="ws-tok-info">'+
-        '<div class="ws-tok-name">'+r.symbol+(r.isUranus?' \u2726':'')+'</div>'+
-        '<div class="ws-tok-mint">'+r.name+'</div>'+
-      '</div>'+
-      '<div class="ws-tok-bal'+(r.isSol?' sol':'')+'">'+r.balance.toLocaleString(undefined,{maximumFractionDigits:4})+'</div>'+
-    '</div>';
+      ? '<img src="'+r.logo+'" alt="'+initials+'" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+initials+'\'">'
+      : initials;
+    return '<div class="ws-token-row'+(r.isUranus?' uranus-row':'')+'">'
+      +'<div class="ws-tok-icon">'+iconHtml+'</div>'
+      +'<div class="ws-tok-info">'
+        +'<div class="ws-tok-name">'+r.symbol+(r.isUranus?' \u2726':'')+'</div>'
+        +'<div class="ws-tok-mint">'+r.name+'</div>'
+      +'</div>'
+      +'<div class="ws-tok-bal'+(r.isSol?' sol':'')+'">'+r.balance.toLocaleString(undefined,{maximumFractionDigits:4})+'</div>'
+    +'</div>';
   }).join('');
 }
 
@@ -952,11 +953,20 @@ async function doStake(){
     const srcATA=await findATA(wallet,mint);
     const dstATA=await findATA(vault,mint);
     const tx=new Transaction();
-    const {blockhash,lastValidBlockHeight}=await conn.getLatestBlockhash('finalized');
+
+    // Get blockhash via proxy
+    const bhResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getLatestBlockhash',params:[{commitment:'finalized'}]})});
+    const bhJson = await bhResp.json();
+    const blockhash = bhJson.result.value.blockhash;
+    const lastValidBlockHeight = bhJson.result.value.lastValidBlockHeight;
     tx.recentBlockhash=blockhash; tx.feePayer=wallet;
 
-    const dstInfo=await conn.getAccountInfo(dstATA);
-    if(!dstInfo) tx.add(ixCreateATA(wallet,dstATA,vault,mint));
+    // Check if vault ATA exists via proxy
+    const accResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:2,method:'getAccountInfo',params:[dstATA.toBase58(),{encoding:'base64'}]})});
+    const accJson = await accResp.json();
+    if(!accJson.result.value) tx.add(ixCreateATA(wallet,dstATA,vault,mint));
 
     const rawAmt = BigInt(Math.round(amt * Math.pow(10, TOKEN_DECIMALS)));
     tx.add(ixTransfer(srcATA,dstATA,wallet,rawAmt));
@@ -967,11 +977,26 @@ async function doStake(){
 
     setBtnTxt('<span class="spin"></span>Broadcasting…');
     setStatus('info','Sending to network…');
-    const sig=await conn.sendRawTransaction(signed.serialize(),{skipPreflight:false,maxRetries:3});
+    const rawTx = Buffer.from(signed.serialize()).toString('base64');
+    const sendResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:3,method:'sendTransaction',
+        params:[rawTx,{encoding:'base64',skipPreflight:false,maxRetries:3}]})});
+    const sendJson = await sendResp.json();
+    if(sendJson.error) throw new Error(sendJson.error.message||'Send failed');
+    const sig = sendJson.result;
 
     setBtnTxt('<span class="spin"></span>Confirming…');
     setStatus('info','Confirming on Solana…');
-    await conn.confirmTransaction({signature:sig,blockhash,lastValidBlockHeight},'confirmed');
+    // Poll for confirmation
+    for(let i=0;i<30;i++){
+      await new Promise(r=>setTimeout(r,2000));
+      const sigResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({jsonrpc:'2.0',id:4,method:'getSignatureStatuses',params:[[sig]]})});
+      const sigJson = await sigResp.json();
+      const status = sigJson?.result?.value?.[0];
+      if(status?.confirmationStatus==='confirmed'||status?.confirmationStatus==='finalized') break;
+      if(status?.err) throw new Error('Transaction failed on chain');
+    }
 
     setStatus('ok',`✓ Staked ${amt.toLocaleString()} URANUS for ${selMonths} months! &nbsp;<a class="tx-link" href="https://solscan.io/tx/${sig}" target="_blank" rel="noopener">View on Solscan ↗</a>`);
     setBtnTxt('✓ Staked!');
