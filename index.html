@@ -293,8 +293,8 @@
     .status.err  { border:1px solid rgba(255,60,60,.4);  color:#ff6868;    background:rgba(255,60,60,.05); }
     .status.info { border:1px solid rgba(0,212,255,.3);  color:var(--cyan); background:rgba(0,212,255,.05); }
 
-    .overlay      { position:absolute; inset:0; background:rgba(4,8,15,.82); backdrop-filter:blur(5px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; z-index:10; transition:opacity .3s; }
-    .overlay.hide { opacity:0; pointer-events:none; }
+    .overlay      { position:absolute; inset:0; background:rgba(4,8,15,.82); backdrop-filter:blur(5px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; z-index:10; transition:opacity .3s,visibility .3s; }
+    .overlay.hide { opacity:0; pointer-events:none; visibility:hidden; backdrop-filter:none; }
     .overlay-txt  { font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:3px; color:var(--muted); }
 
     @keyframes spin { to{transform:rotate(360deg)} }
@@ -303,6 +303,40 @@
     .tx-link:hover { text-decoration:underline; }
 
     footer { padding:18px 40px; border-top:1px solid var(--border); text-align:center; font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:3px; color:var(--muted); }
+
+    /* ════ WALLET SIDEBAR ════ */
+    .ws-backdrop { position:fixed; inset:0; background:rgba(2,5,12,.6); backdrop-filter:blur(4px); z-index:400; opacity:0; pointer-events:none; transition:opacity .3s; }
+    .ws-backdrop.open { opacity:1; pointer-events:all; }
+    .ws-panel { position:fixed; top:0; right:0; bottom:0; width:320px; max-width:90vw; background:linear-gradient(160deg,#070f1e,#04080f); border-left:1px solid rgba(0,212,255,.2); z-index:401; transform:translateX(100%); transition:transform .35s cubic-bezier(.22,1,.36,1); display:flex; flex-direction:column; overflow:hidden; }
+    .ws-panel.open { transform:translateX(0); }
+    .ws-panel::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,#00d4ff,#30ffe0,transparent); }
+    .ws-header { display:flex; align-items:center; justify-content:space-between; padding:28px 20px 16px; border-bottom:1px solid rgba(0,212,255,.1); }
+    .ws-header-left { display:flex; align-items:center; gap:12px; }
+    .ws-icon { width:38px; height:38px; border-radius:10px; border:1px solid rgba(0,212,255,.2); background:#0a1220; flex-shrink:0; }
+    .ws-addr { font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; color:#fff; letter-spacing:1px; }
+    .ws-label { font-size:9px; letter-spacing:3px; color:var(--teal); margin-top:3px; }
+    .ws-close { background:none; border:1px solid rgba(0,212,255,.2); color:rgba(200,240,255,.5); cursor:pointer; font-size:15px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; transition:all .2s; flex-shrink:0; }
+    .ws-close:hover { border-color:var(--cyan); color:#fff; }
+    .ws-copy-row { display:flex; gap:8px; padding:14px 20px; border-bottom:1px solid rgba(0,212,255,.08); }
+    .ws-action-btn { flex:1; padding:9px 6px; background:rgba(0,212,255,.05); border:1px solid rgba(0,212,255,.2); color:var(--cyan); font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:1px; cursor:pointer; transition:all .2s; }
+    .ws-action-btn:hover { background:rgba(0,212,255,.12); }
+    .ws-section-lbl { font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:3px; color:var(--muted); padding:16px 20px 10px; }
+    .ws-token-list { flex:1; overflow-y:auto; padding:0 12px 12px; display:flex; flex-direction:column; gap:6px; }
+    .ws-token-list::-webkit-scrollbar { width:4px; }
+    .ws-token-list::-webkit-scrollbar-track { background:transparent; }
+    .ws-token-list::-webkit-scrollbar-thumb { background:rgba(0,212,255,.2); border-radius:2px; }
+    .ws-token-row { display:flex; align-items:center; gap:12px; padding:11px 14px; background:rgba(0,212,255,.03); border:1px solid rgba(0,212,255,.08); border-radius:2px; }
+    .ws-token-row.uranus-row { border-color:rgba(48,255,224,.2); background:rgba(48,255,224,.04); }
+    .ws-tok-icon { width:32px; height:32px; border-radius:50%; background:rgba(0,212,255,.1); border:1px solid rgba(0,212,255,.2); display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; overflow:hidden; }
+    .ws-tok-icon img { width:100%; height:100%; object-fit:cover; }
+    .ws-tok-info { flex:1; min-width:0; }
+    .ws-tok-name { font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ws-tok-mint { font-size:9px; color:var(--muted); margin-top:2px; font-family:monospace; }
+    .ws-tok-bal { font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700; color:var(--teal); text-align:right; white-space:nowrap; }
+    .ws-tok-bal.sol { color:var(--cyan); }
+    .ws-loading { text-align:center; padding:30px; color:var(--muted); font-size:11px; letter-spacing:2px; font-family:'Orbitron',sans-serif; }
+    .ws-disc-btn { margin:12px 20px 24px; padding:14px; background:rgba(255,80,80,.06); border:1px solid rgba(255,80,80,.3); color:#ff6868; font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:3px; cursor:pointer; transition:all .2s; }
+    .ws-disc-btn:hover { background:rgba(255,80,80,.12); }
 
     @media(max-width:620px){
       nav { padding:14px 18px; }
@@ -411,19 +445,32 @@
 
     <div class="wallet-wrap" id="walletWrap">
       <button class="wallet-btn" id="walletBtn" onclick="handleWalletClick()">Connect Wallet</button>
-      <div class="disc-drop" id="discDrop">
-        <div class="disc-addr">
-          <div class="disc-addr-left">
-            <img class="wallet-icon-sm" id="discIcon" src="" alt="" />
-            <span id="discAddrTxt">—</span>
-          </div>
-          <button class="copy-btn" id="copyBtn" onclick="copyAddress()">Copy</button>
-        </div>
-        <div class="drop-row" onclick="viewOnExplorer()">🔍 &nbsp;View on Solscan</div>
-        <div class="drop-row disc" onclick="disconnectWallet()">⏏ &nbsp;Disconnect</div>
-      </div>
     </div>
   </nav>
+
+  <!-- WALLET SIDEBAR -->
+  <div class="ws-backdrop" id="wsBackdrop" onclick="closeDiscDrop()"></div>
+  <div class="ws-panel" id="wsPanel">
+    <div class="ws-header">
+      <div class="ws-header-left">
+        <img class="ws-icon" id="discIcon" src="" alt="" />
+        <div>
+          <div class="ws-addr" id="discAddrTxt">—</div>
+          <div class="ws-label">CONNECTED</div>
+        </div>
+      </div>
+      <button class="ws-close" onclick="closeDiscDrop()">✕</button>
+    </div>
+    <div class="ws-copy-row">
+      <button class="ws-action-btn" onclick="copyAddress()" id="copyBtn">⧉ Copy Address</button>
+      <button class="ws-action-btn" onclick="viewOnExplorer()">↗ Solscan</button>
+    </div>
+    <div class="ws-section-lbl">TOKEN BALANCES</div>
+    <div class="ws-token-list" id="wsTokenList">
+      <div class="ws-loading">Loading tokens…</div>
+    </div>
+    <button class="ws-disc-btn" onclick="disconnectWallet()">⏏ &nbsp;Disconnect Wallet</button>
+  </div>
 
   <main>
     <div class="hero">
@@ -613,7 +660,20 @@ function buildWalletList(){
         </div>
       </div>
       <div class="wm-arrow">›</div>`;
-    el.onclick = ()=> installed ? connectWallet(w) : window.open(w.installUrl,'_blank');
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    const deepLinks = {
+      phantom:  `https://phantom.app/ul/browse/${encodeURIComponent(location.href)}?ref=${encodeURIComponent(location.origin)}`,
+      solflare: `https://solflare.com/ul/v1/browse/${encodeURIComponent(location.href)}?ref=${encodeURIComponent(location.origin)}`,
+      backpack: `https://backpack.app/browse/${encodeURIComponent(location.href)}`,
+      okx:      `okx://wallet/dapp/url?dappUrl=${encodeURIComponent(location.href)}`,
+      coinbase: `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(location.href)}`,
+      trust:    `https://link.trustwallet.com/open_url?coin_id=501&url=${encodeURIComponent(location.href)}`,
+    };
+    el.onclick = ()=> {
+      if(installed){ connectWallet(w); }
+      else if(isMobile && deepLinks[w.id]){ window.location.href = deepLinks[w.id]; }
+      else{ window.open(w.installUrl,'_blank'); }
+    };
     list.appendChild(el);
   });
 }
@@ -648,9 +708,22 @@ async function disconnectWallet(){
 
 // ── Disconnect dropdown ────────────────────────────────────────
 function handleWalletClick(){ wallet ? toggleDiscDrop() : openWalletModal(); }
-function toggleDiscDrop(){ discOpen=!discOpen; document.getElementById('discDrop').classList.toggle('open',discOpen); }
-function closeDiscDrop(){ discOpen=false; document.getElementById('discDrop').classList.remove('open'); }
-document.addEventListener('click',e=>{ if(!document.getElementById('walletWrap').contains(e.target)) closeDiscDrop(); });
+function toggleDiscDrop(){
+  discOpen=!discOpen;
+  document.getElementById('wsPanel').classList.toggle('open',discOpen);
+  document.getElementById('wsBackdrop').classList.toggle('open',discOpen);
+  if(discOpen) fetchAllTokens();
+}
+function closeDiscDrop(){
+  discOpen=false;
+  document.getElementById('wsPanel').classList.remove('open');
+  document.getElementById('wsBackdrop').classList.remove('open');
+}
+document.addEventListener('click',e=>{
+  const wrap=document.getElementById('walletWrap');
+  const panel=document.getElementById('wsPanel');
+  if(!wrap.contains(e.target)&&!panel.contains(e.target)) closeDiscDrop();
+});
 
 function copyAddress(){
   if(!wallet) return;
@@ -676,10 +749,10 @@ function renderWallet(connected){
       const encoded = btoa(unescape(encodeURIComponent(activeWalletDef.icon)));
       document.getElementById('discIcon').src=`data:image/svg+xml;base64,${encoded}`;
     }
-    ovl.classList.add('hide'); sbtn.disabled=false;
+    ovl.classList.add('hide'); ovl.style.display='none'; sbtn.disabled=false;
   } else {
     btn.innerHTML='Connect Wallet'; btn.classList.remove('connected');
-    ovl.classList.remove('hide'); sbtn.disabled=true;
+    ovl.classList.remove('hide'); ovl.style.display=''; sbtn.disabled=true;
     document.getElementById('balDisplay').textContent='0.00 URANUS';
     document.getElementById('discAddrTxt').textContent='—';
     document.getElementById('discIcon').src='';
@@ -762,6 +835,67 @@ async function fetchBalance(){
   document.getElementById('balDisplay').style.cursor = 'pointer';
   document.getElementById('balDisplay').onclick = ()=>fetchBalance();
   return false;
+}
+
+
+async function fetchAllTokens(){
+  if(!wallet) return;
+  const list = document.getElementById('wsTokenList');
+  list.innerHTML = '<div class="ws-loading">Loading tokens…</div>';
+  const pub = wallet.toBase58();
+  const rows = [];
+
+  try{
+    // SOL balance
+    const solResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getBalance',params:[pub,{commitment:'confirmed'}]})});
+    const solJson = await solResp.json();
+    const solBal = (solJson?.result?.value||0)/1e9;
+    rows.push({symbol:'SOL',name:'Solana',balance:solBal,logo:'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png',isSol:true});
+  }catch(e){}
+
+  try{
+    // All SPL tokens
+    const tokResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:2,method:'getTokenAccountsByOwner',
+        params:[pub,{programId:'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'},{encoding:'jsonParsed',commitment:'confirmed'}]})});
+    const tokJson = await tokResp.json();
+    const accounts = tokJson?.result?.value||[];
+    for(const acc of accounts){
+      const info = acc.account.data.parsed.info;
+      const bal = parseFloat(info.tokenAmount.uiAmount||0);
+      if(bal<=0) continue;
+      const mint = info.mint;
+      let symbol=mint.slice(0,4)+'…', name='Unknown', logo='';
+      // fetch metadata from Jupiter token list
+      try{
+        const meta = await fetch(\`https://tokens.jup.ag/token/\${mint}\`);
+        if(meta.ok){ const m=await meta.json(); symbol=m.symbol||symbol; name=m.name||name; logo=m.logoURI||''; }
+      }catch{}
+      rows.push({symbol,name,balance:bal,logo,mint,isUranus:mint===URANUS_MINT});
+    }
+  }catch(e){}
+
+  if(rows.length===0){ list.innerHTML='<div class="ws-loading">No tokens found</div>'; return; }
+
+  // Sort: SOL first, URANUS second, rest alphabetical
+  rows.sort((a,b)=>{
+    if(a.isSol) return -1; if(b.isSol) return 1;
+    if(a.isUranus) return -1; if(b.isUranus) return 1;
+    return a.symbol.localeCompare(b.symbol);
+  });
+
+  list.innerHTML = rows.map(r=>`
+    <div class="ws-token-row${r.isUranus?' uranus-row':''}">
+      <div class="ws-tok-icon">
+        ${r.logo?`<img src="${r.logo}" alt="${r.symbol}" onerror="this.parentElement.textContent='${r.symbol.slice(0,2)}'">`:`${r.symbol.slice(0,2)}`}
+      </div>
+      <div class="ws-tok-info">
+        <div class="ws-tok-name">${r.symbol}${r.isUranus?' ✦':''}</div>
+        <div class="ws-tok-mint">${r.name}</div>
+      </div>
+      <div class="ws-tok-bal${r.isSol?' sol':''}">${r.balance.toLocaleString(undefined,{maximumFractionDigits:4})}</div>
+    </div>`).join('');
 }
 
 async function fetchStats(){
