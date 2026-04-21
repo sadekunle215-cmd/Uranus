@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>URANUS · Staking Protocol</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@solana/web3.js@1.91.8/lib/index.iife.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+    :root {
+      --bg:      #04080f;
+      --cyan:    #00d4ff;
+      --teal:    #30ffe0;
+      --purple:  #7b2fff;
+      --card:    rgba(0,212,255,0.04);
+      --border:  rgba(0,212,255,0.15);
+      --text:    #c8f0ff;
+      --muted:   rgba(200,240,255,0.4);
+      --glow:    0 0 30px rgba(0,212,255,0.3);
+      --glow-lg: 0 0 60px rgba(0,212,255,0.5);
+    }
+
+    html,body { height:100%; background:var(--bg); color:var(--text); font-family:'Rajdhani',sans-serif; overflow-x:hidden; }
+
+    /* STARS */
+    .stars { position:fixed; inset:0; pointer-events:none; z-index:0; }
+    .star  { position:absolute; background:#fff; border-radius:50%; animation:twinkle var(--dur,3s) infinite alternate; opacity:var(--op,.5); }
+    @keyframes twinkle { from{opacity:var(--op);transform:scale(1)} to{opacity:calc(var(--op)*.2);transform:scale(.4)} }
+
+    /* PLANET */
+    .planet-wrap { position:fixed; right:-80px; top:50%; transform:translateY(-50%); z-index:0; pointer-events:none; }
+    .planet {
+      width:300px; height:300px; border-radius:50%;
+      background:radial-gradient(circle at 33% 33%,#d0fffc 0%,#7ef7ee 12%,#40e0d0 28%,#1fb8c8 48%,#0a7a9a 70%,#053a5a 92%);
+      box-shadow:inset -28px -18px 55px rgba(0,0,0,.55),0 0 90px rgba(0,212,255,.35),0 0 180px rgba(0,212,255,.15);
+      animation:breathe 6s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0%,100%{box-shadow:inset -28px -18px 55px rgba(0,0,0,.55),0 0 90px rgba(0,212,255,.35),0 0 180px rgba(0,212,255,.15)}
+      50%{box-shadow:inset -35px -22px 70px rgba(0,0,0,.6),0 0 120px rgba(0,212,255,.5),0 0 220px rgba(0,212,255,.2)}
+    }
+    .rings { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotateX(72deg); }
+    .ring  { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); border-radius:50%; border-style:solid; animation:rglow 5s ease-in-out infinite alternate; }
+    .ring:nth-child(1){width:370px;height:370px;border-width:3px;border-color:rgba(0,212,255,.5)}
+    .ring:nth-child(2){width:410px;height:410px;border-width:2px;border-color:rgba(0,212,255,.3)}
+    .ring:nth-child(3){width:450px;height:450px;border-width:1px;border-color:rgba(48,255,224,.2)}
+    .ring:nth-child(4){width:495px;height:495px;border-width:1px;border-color:rgba(48,255,224,.1)}
+    @keyframes rglow { from{opacity:.9} to{opacity:.3} }
+
+    .app { position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column; }
+
+    /* NAV */
+    nav { display:flex; align-items:center; justify-content:space-between; padding:18px 44px; border-bottom:1px solid var(--border); backdrop-filter:blur(12px); background:rgba(4,8,15,.65); position:sticky; top:0; z-index:200; }
+    .logo { display:flex; align-items:center; gap:14px; }
+    .logo-orb { width:38px; height:38px; border-radius:50%; background:radial-gradient(circle at 35% 35%,#c0fffc,#40e0d0,#1ab8c8); box-shadow:0 0 22px rgba(0,212,255,.7); position:relative; }
+    .logo-orb::after { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotateX(68deg); width:56px; height:56px; border:2px solid rgba(0,212,255,.55); border-radius:50%; }
+    .logo-title { font-family:'Orbitron',sans-serif; font-size:18px; font-weight:900; letter-spacing:4px; background:linear-gradient(90deg,var(--cyan),var(--teal)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .logo-sub { font-size:9px; letter-spacing:3px; color:var(--muted); font-family:'Orbitron',sans-serif; }
+
+    /* WALLET BUTTON */
+    .wallet-btn { display:flex; align-items:center; gap:8px; padding:10px 26px; background:transparent; border:1px solid var(--cyan); color:var(--cyan); font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; cursor:pointer; clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%); transition:all .25s; text-transform:uppercase; white-space:nowrap; }
+    .wallet-btn:hover { background:rgba(0,212,255,.1); box-shadow:var(--glow); }
+    .wallet-btn.connected { border-color:var(--teal); color:var(--teal); background:rgba(48,255,224,.06); }
+    .wallet-dot { width:7px; height:7px; border-radius:50%; background:var(--teal); box-shadow:0 0 7px var(--teal); animation:blink 2s infinite; flex-shrink:0; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* DISCONNECT DROPDOWN */
+    .wallet-wrap { position:relative; }
+    .disc-drop { position:absolute; top:calc(100% + 10px); right:0; background:#0a1220; border:1px solid var(--border); min-width:230px; z-index:300; opacity:0; pointer-events:none; transform:translateY(-6px); transition:opacity .2s,transform .2s; }
+    .disc-drop.open { opacity:1; pointer-events:all; transform:translateY(0); }
+    .disc-addr { padding:12px 16px; font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:1px; color:var(--muted); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .disc-addr-left { display:flex; align-items:center; gap:8px; }
+    .copy-btn { background:none; border:none; color:var(--cyan); cursor:pointer; font-size:11px; padding:2px 6px; font-family:'Rajdhani',sans-serif; transition:color .2s; }
+    .copy-btn:hover { color:var(--teal); }
+    .wallet-icon-sm { width:20px; height:20px; border-radius:5px; flex-shrink:0; }
+    .drop-row { display:flex; align-items:center; gap:10px; padding:12px 16px; font-size:13px; letter-spacing:1px; cursor:pointer; transition:background .15s; color:var(--text); }
+    .drop-row:hover { background:rgba(0,212,255,.07); }
+    .drop-row.disc { color:#ff6868; border-top:1px solid var(--border); }
+    .drop-row.disc:hover { background:rgba(255,80,80,.07); }
+
+    /* ════ WALLET MODAL ════ */
+    .wm-backdrop { position:fixed; inset:0; background:rgba(2,5,12,.88); backdrop-filter:blur(8px); z-index:500; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
+    .wm-backdrop.open { opacity:1; pointer-events:all; }
+    .wm-box { width:100%; max-width:400px; margin:16px; background:#07111f; border:1px solid var(--border); position:relative; overflow:hidden; transform:translateY(16px) scale(.97); transition:transform .25s; }
+    .wm-backdrop.open .wm-box { transform:translateY(0) scale(1); }
+    .wm-box::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--cyan),var(--teal),transparent); }
+    .wm-head { display:flex; align-items:center; justify-content:space-between; padding:22px 24px 14px; }
+    .wm-title { font-family:'Orbitron',sans-serif; font-size:14px; letter-spacing:3px; color:var(--cyan); }
+    .wm-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:20px; line-height:1; padding:2px 8px; transition:color .2s; }
+    .wm-close:hover { color:var(--text); }
+    .wm-subtitle { padding:0 24px 16px; font-size:11px; letter-spacing:1px; color:var(--muted); }
+    .wm-list { padding:0 14px 16px; display:flex; flex-direction:column; gap:3px; }
+    .wm-item { display:flex; align-items:center; gap:14px; padding:12px 14px; cursor:pointer; border:1px solid transparent; transition:all .18s; background:rgba(255,255,255,.015); }
+    .wm-item:hover { border-color:var(--border); background:rgba(0,212,255,.05); }
+    .wm-item:hover .wm-arrow { opacity:1; transform:translateX(0); }
+    .w-icon { width:40px; height:40px; border-radius:10px; flex-shrink:0; overflow:hidden; }
+    .w-icon svg { width:100%; height:100%; display:block; }
+    .w-info { flex:1; }
+    .w-name { font-family:'Orbitron',sans-serif; font-size:12px; letter-spacing:1px; color:var(--text); }
+    .w-status { font-size:10px; letter-spacing:1px; margin-top:4px; }
+    .w-status.inst { color:var(--teal); }
+    .w-status.get  { color:var(--muted); }
+    .wm-arrow { color:var(--cyan); font-size:18px; opacity:0; transform:translateX(-4px); transition:all .18s; }
+    .wm-footer { padding:14px 24px 20px; border-top:1px solid var(--border); text-align:center; font-size:11px; letter-spacing:1px; color:var(--muted); }
+    .wm-footer a { color:var(--cyan); text-decoration:none; }
+    .wm-footer a:hover { text-decoration:underline; }
+
+    /* MAIN */
+    main { flex:1; display:flex; flex-direction:column; align-items:center; padding:56px 20px 60px; gap:36px; }
+
+    .hero { text-align:center; }
+    .hero-tag { font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:5px; color:var(--cyan); text-transform:uppercase; margin-bottom:14px; }
+    .hero h1  { font-family:'Orbitron',sans-serif; font-size:clamp(28px,7vw,68px); font-weight:900; letter-spacing:10px; line-height:1; background:linear-gradient(180deg,#fff 0%,var(--cyan) 55%,var(--teal) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px; }
+    .hero p   { color:var(--muted); font-size:14px; letter-spacing:2px; }
+
+    .stats-row { display:flex; gap:2px; width:100%; max-width:680px; }
+    .stat-card { flex:1; padding:20px 12px; background:var(--card); border:1px solid var(--border); text-align:center; position:relative; overflow:hidden; }
+    .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--cyan),transparent); }
+    .stat-val { font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700; color:var(--cyan); }
+    .stat-lbl { font-size:9px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-top:5px; }
+
+    .stake-card { width:100%; max-width:500px; background:var(--card); border:1px solid var(--border); padding:34px 36px; position:relative; overflow:hidden; }
+    .stake-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--cyan),var(--teal),transparent); }
+    .stake-card::after  { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--purple),transparent); }
+    .card-ttl { font-family:'Orbitron',sans-serif; font-size:12px; letter-spacing:4px; color:var(--cyan); text-transform:uppercase; margin-bottom:26px; display:flex; align-items:center; gap:10px; }
+    .card-ttl::before { content:''; width:3px; height:14px; background:var(--cyan); box-shadow:0 0 8px var(--cyan); }
+
+    .balance-row { display:flex; align-items:center; justify-content:space-between; padding:13px 16px; background:rgba(0,212,255,.04); border:1px solid rgba(0,212,255,.1); margin-bottom:22px; }
+    .bal-lbl { font-size:10px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
+    .bal-val { font-family:'Orbitron',sans-serif; font-size:15px; font-weight:600; color:var(--teal); }
+
+    .field { margin-bottom:22px; }
+    .field-lbl { display:block; font-size:10px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:9px; }
+    .input-row { display:flex; align-items:center; border:1px solid var(--border); background:rgba(0,0,0,.3); transition:border-color .25s; }
+    .input-row:focus-within { border-color:var(--cyan); box-shadow:0 0 0 1px rgba(0,212,255,.15); }
+    .amt-input { flex:1; background:transparent; border:none; outline:none; padding:14px 16px; font-family:'Orbitron',sans-serif; font-size:18px; color:#fff; width:100%; }
+    .amt-input::placeholder { color:rgba(255,255,255,.2); }
+    .tok-badge { padding:0 14px; font-family:'Orbitron',sans-serif; font-size:11px; color:var(--muted); letter-spacing:1px; white-space:nowrap; }
+    .max-btn   { padding:8px 14px; margin:5px; background:rgba(0,212,255,.1); border:1px solid rgba(0,212,255,.3); color:var(--cyan); font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:1px; cursor:pointer; transition:all .2s; }
+    .max-btn:hover { background:rgba(0,212,255,.2); }
+
+    .dur-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:24px; }
+    .dur-btn  { padding:11px 4px; text-align:center; background:rgba(0,0,0,.3); border:1px solid rgba(0,212,255,.14); color:var(--muted); cursor:pointer; transition:all .2s; font-family:'Orbitron',sans-serif; }
+    .dur-label{ font-size:12px; font-weight:700; display:block; }
+    .dur-apy  { font-size:8px; letter-spacing:1px; margin-top:3px; display:block; }
+    .dur-btn:hover { border-color:rgba(0,212,255,.4); color:var(--text); }
+    .dur-btn.active { border-color:var(--cyan); color:var(--cyan); background:rgba(0,212,255,.08); }
+    .dur-btn.active .dur-apy { color:var(--teal); }
+
+    .preview { display:flex; justify-content:space-between; align-items:center; padding:15px 18px; background:rgba(48,255,224,.04); border:1px solid rgba(48,255,224,.15); margin-bottom:22px; }
+    .pv-item { text-align:center; }
+    .pv-lbl  { font-size:9px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
+    .pv-val  { font-family:'Orbitron',sans-serif; font-size:14px; font-weight:600; color:var(--teal); margin-top:5px; }
+
+    .stake-btn { width:100%; padding:17px; background:linear-gradient(135deg,rgba(0,212,255,.12),rgba(48,255,224,.08)); border:1px solid var(--cyan); color:#fff; font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; letter-spacing:4px; cursor:pointer; text-transform:uppercase; transition:all .3s; position:relative; overflow:hidden; }
+    .stake-btn::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,var(--cyan),var(--teal)); opacity:0; transition:opacity .3s; }
+    .stake-btn:hover::before { opacity:.12; }
+    .stake-btn:hover:not(:disabled) { box-shadow:var(--glow-lg); transform:translateY(-1px); }
+    .stake-btn:disabled { opacity:.38; cursor:not-allowed; transform:none; box-shadow:none; }
+    .stake-btn span { position:relative; z-index:1; }
+
+    .status      { margin-top:14px; padding:11px 15px; font-size:12px; letter-spacing:1px; text-align:center; display:none; }
+    .status.show { display:block; }
+    .status.ok   { border:1px solid rgba(48,255,224,.4); color:var(--teal); background:rgba(48,255,224,.05); }
+    .status.err  { border:1px solid rgba(255,60,60,.4);  color:#ff6868;    background:rgba(255,60,60,.05); }
+    .status.info { border:1px solid rgba(0,212,255,.3);  color:var(--cyan); background:rgba(0,212,255,.05); }
+
+    .overlay      { position:absolute; inset:0; background:rgba(4,8,15,.82); backdrop-filter:blur(5px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; z-index:10; transition:opacity .3s; }
+    .overlay.hide { opacity:0; pointer-events:none; }
+    .overlay-txt  { font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:3px; color:var(--muted); }
+
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .spin { display:inline-block; width:13px; height:13px; border:2px solid rgba(0,212,255,.3); border-top-color:var(--cyan); border-radius:50%; animation:spin .75s linear infinite; vertical-align:middle; margin-right:7px; }
+    .tx-link { color:var(--cyan); text-decoration:none; }
+    .tx-link:hover { text-decoration:underline; }
+
+    footer { padding:18px 40px; border-top:1px solid var(--border); text-align:center; font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:3px; color:var(--muted); }
+
+    @media(max-width:620px){
+      nav { padding:14px 18px; }
+      .logo-title { font-size:14px; letter-spacing:2px; }
+      main { padding:32px 14px 50px; gap:26px; }
+      .stake-card { padding:24px 18px; }
+      .dur-grid { grid-template-columns:repeat(3,1fr); }
+      .stats-row { flex-wrap:wrap; }
+      .stat-card { min-width:45%; }
+      .planet-wrap { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="planet-wrap">
+  <div class="rings"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="ring"></div></div>
+  <div class="planet"></div>
+</div>
+
+<!-- ════ WALLET SELECT MODAL ════ -->
+<div class="wm-backdrop" id="wmBackdrop" onclick="handleBackdropClick(event)">
+  <div class="wm-box" role="dialog" aria-modal="true" aria-label="Connect Wallet">
+    <div class="wm-head">
+      <div class="wm-title">Connect a Wallet</div>
+      <button class="wm-close" onclick="closeWalletModal()" aria-label="Close">✕</button>
+    </div>
+    <div class="wm-subtitle">Choose your Solana wallet to continue</div>
+    <div class="wm-list" id="wmList"></div>
+    <div class="wm-footer">
+      New to Solana wallets? &nbsp;<a href="https://phantom.app" target="_blank" rel="noopener">Get Phantom ↗</a>
+    </div>
+  </div>
+</div>
+<!-- ═══════════════════════════════ -->
+
+<div class="app">
+  <nav>
+    <div class="logo">
+      <div class="logo-orb"></div>
+      <div>
+        <div class="logo-title">URANUS</div>
+        <div class="logo-sub">Staking Protocol</div>
+      </div>
+    </div>
+
+    <div class="wallet-wrap" id="walletWrap">
+      <button class="wallet-btn" id="walletBtn" onclick="handleWalletClick()">Connect Wallet</button>
+      <div class="disc-drop" id="discDrop">
+        <div class="disc-addr">
+          <div class="disc-addr-left">
+            <img class="wallet-icon-sm" id="discIcon" src="" alt="" />
+            <span id="discAddrTxt">—</span>
+          </div>
+          <button class="copy-btn" id="copyBtn" onclick="copyAddress()">Copy</button>
+        </div>
+        <div class="drop-row" onclick="viewOnExplorer()">🔍 &nbsp;View on Solscan</div>
+        <div class="drop-row disc" onclick="disconnectWallet()">⏏ &nbsp;Disconnect</div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="hero">
+      <div class="hero-tag">⬡ Solana · SPL Token · Mainnet</div>
+      <h1>STAKE URANUS</h1>
+      <p>Lock your tokens &nbsp;·&nbsp; Earn rewards &nbsp;·&nbsp; Expand the universe</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val" id="sStat">—</div><div class="stat-lbl">Total Staked</div></div>
+      <div class="stat-card"><div class="stat-val">40%</div><div class="stat-lbl">Max APY</div></div>
+      <div class="stat-card"><div class="stat-val">2 YRS</div><div class="stat-lbl">Max Lock</div></div>
+      <div class="stat-card"><div class="stat-val" id="hStat">—</div><div class="stat-lbl">Holders</div></div>
+    </div>
+
+    <div class="stake-card" id="stakeCard">
+      <div class="overlay" id="overlay">
+        <div class="overlay-txt">Connect your wallet to stake</div>
+        <button class="wallet-btn" onclick="openWalletModal()">Connect Wallet</button>
+      </div>
+
+      <div class="card-ttl">Stake Uranus Tokens</div>
+
+      <div class="balance-row">
+        <span class="bal-lbl">Available Balance</span>
+        <span class="bal-val" id="balDisplay">0.00 URANUS</span>
+      </div>
+
+      <div class="field">
+        <label class="field-lbl">Stake Amount</label>
+        <div class="input-row">
+          <input type="number" class="amt-input" id="amtInput" placeholder="0.00" min="0" step="any" oninput="refreshPreview()" />
+          <span class="tok-badge">URANUS</span>
+          <button class="max-btn" onclick="setMax()">MAX</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-lbl">Lock Duration</label>
+        <div class="dur-grid">
+          <button class="dur-btn"        data-m="3"  data-a="12" onclick="pickDur(this)"><span class="dur-label">3M</span><span class="dur-apy">12% APY</span></button>
+          <button class="dur-btn"        data-m="6"  data-a="18" onclick="pickDur(this)"><span class="dur-label">6M</span><span class="dur-apy">18% APY</span></button>
+          <button class="dur-btn active" data-m="12" data-a="25" onclick="pickDur(this)"><span class="dur-label">12M</span><span class="dur-apy">25% APY</span></button>
+          <button class="dur-btn"        data-m="18" data-a="32" onclick="pickDur(this)"><span class="dur-label">18M</span><span class="dur-apy">32% APY</span></button>
+          <button class="dur-btn"        data-m="24" data-a="40" onclick="pickDur(this)"><span class="dur-label">24M</span><span class="dur-apy">40% APY</span></button>
+        </div>
+      </div>
+
+      <div class="preview">
+        <div class="pv-item"><div class="pv-lbl">APY</div><div class="pv-val" id="pvApy">25%</div></div>
+        <div class="pv-item"><div class="pv-lbl">Unlock Date</div><div class="pv-val" id="pvUnlock">—</div></div>
+        <div class="pv-item"><div class="pv-lbl">Est. Reward</div><div class="pv-val" id="pvReward">0.00</div></div>
+      </div>
+
+      <button class="stake-btn" id="stakeBtn" onclick="doStake()" disabled>
+        <span id="stakeBtnTxt">Stake Uranus</span>
+      </button>
+      <div class="status" id="statusEl"></div>
+    </div>
+  </main>
+
+  <footer>URANUS PROTOCOL &nbsp;·&nbsp; POWERED BY SOLANA &nbsp;·&nbsp; STAKE SMARTER</footer>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIG  ← edit these before going live
+// ══════════════════════════════════════════════════════
+const URANUS_MINT    = 'YOUR_URANUS_TOKEN_MINT_ADDRESS_HERE'; // ← REPLACE
+const TOKEN_DECIMALS = 9;                                      // ← REPLACE
+// ══════════════════════════════════════════════════════
+const STAKE_VAULT = '8kP2nDXXxNZtef2GEmiuX2KmcvUE8pLZc6AjcCQzi17x';
+const RPC         = 'https://api.mainnet-beta.solana.com';
+
+const {Connection,PublicKey,Transaction,TransactionInstruction,SystemProgram,SYSVAR_RENT_PUBKEY} = solanaWeb3;
+const TOKEN_PROG = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+const ATA_PROG   = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bS');
+
+let conn=null, wallet=null, provider=null, activeWalletDef=null;
+let userBalance=0, selMonths=12, selApy=25, discOpen=false;
+
+// ══════════════════════════════════════════════════════
+// WALLET REGISTRY — add/remove wallets here
+// ══════════════════════════════════════════════════════
+const WALLETS = [
+  {
+    id:'phantom', name:'Phantom', installUrl:'https://phantom.app',
+    detect: ()=> window.phantom?.solana || (window.solana?.isPhantom ? window.solana : null),
+    icon: `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="10" fill="#ab9ff2"/>
+      <ellipse cx="20" cy="18" rx="10" ry="11" fill="white"/>
+      <circle cx="16.5" cy="15.5" r="2.8" fill="#ab9ff2"/>
+      <circle cx="23.5" cy="15.5" r="2.8" fill="#ab9ff2"/>
+      <circle cx="17" cy="15" r="1.3" fill="white"/>
+      <circle cx="24" cy="15" r="1.3" fill="white"/>
+      <path d="M11 23 Q12 31 20 31 Q23 31 25.5 29 Q29 27 31.5 22.5 L29 21.5 Q27 25 24.5 26.5 Q22.5 28 20 28 Q14 28 14 23 Z" fill="white"/>
+    </svg>`,
+  },
+  {
+    id:'solflare', name:'Solflare', installUrl:'https://solflare.com',
+    detect: ()=> window.solflare?.isSolflare ? window.solflare : null,
+    icon: `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="10" fill="#FC7227"/>
+      <polygon points="20,5 23,14 32,14 25,20 28,29 20,24 12,29 15,20 8,14 17,14" fill="white" opacity=".95"/>
+    </svg>`,
+  },
+  {
+    id:'backpack', name:'Backpack', installUrl:'https://backpack.app',
+    detect: ()=> window.backpack?.isBackpack ? window.backpack : null,
+    icon: `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="10" fill="#e33e3f"/>
+      <rect x="16" y="7" width="8" height="5" rx="2.5" fill="white"/>
+      <rect x="16" y="9" width="8" height="6" rx="1" fill="#e33e3f" opacity=".4"/>
+      <rect x="11" y="13" width="18" height="20" rx="4" fill="white"/>
+      <circle cx="20" cy="23" r="3.5" fill="#e33e3f"/>
+      <rect x="19" y="22" width="2" height="4" rx="1" fill="white"/>
+    </svg>`,
+  },
+  {
+    id:'okx', name:'OKX Wallet', installUrl:'https://www.okx.com/web3',
+    detect: ()=> window.okxwallet?.solana || null,
+    icon: `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="10" fill="#121212"/>
+      <rect x="8"  y="14" width="8" height="12" rx="2" fill="white"/>
+      <rect x="24" y="14" width="8" height="12" rx="2" fill="white"/>
+      <rect x="16" y="14" width="8" height="5"  rx="1.5" fill="white"/>
+      <rect x="16" y="21" width="8" height="5"  rx="1.5" fill="white"/>
+    </svg>`,
+  },
+  {
+    id:'coinbase', name:'Coinbase Wallet', installUrl:'https://www.coinbase.com/wallet',
+    detect: ()=> window.coinbaseSolana || window.coinbaseWallet?.solana || null,
+    icon: `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="10" fill="#0052ff"/>
+      <circle cx="20" cy="20" r="12" fill="white"/>
+      <circle cx="20" cy="20" r="7.5" fill="#0052ff"/>
+      <rect x="15.5" y="18.5" width="9" height="3" rx="1.5" fill="white"/>
+    </svg>`,
+  },
+  {
+    id:'trust', name:'Trust Wallet', installUrl:'https://trustwallet.com',
+    detect: ()=> window.trustwallet?.solana || null,
+    icon: `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="10" fill="#3375BB"/>
+      <path d="M20 7 L31 11.5 L31 22 Q31 31 20 35 Q9 31 9 22 L9 11.5 Z" fill="white" opacity=".9"/>
+      <polyline points="15,21 18.5,24.5 25,17" stroke="#3375BB" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+  },
+];
+
+// ── Modal ──────────────────────────────────────────────────────
+function buildWalletList(){
+  const list = document.getElementById('wmList');
+  list.innerHTML='';
+  WALLETS.forEach(w=>{
+    const installed = !!w.detect();
+    const el = document.createElement('div');
+    el.className='wm-item';
+    el.innerHTML=`
+      <div class="w-icon">${w.icon}</div>
+      <div class="w-info">
+        <div class="w-name">${w.name}</div>
+        <div class="w-status ${installed?'inst':'get'}">${installed?'● Installed':'○ Not installed'}</div>
+      </div>
+      <div class="wm-arrow">›</div>`;
+    el.onclick = ()=> installed ? connectWallet(w) : window.open(w.installUrl,'_blank');
+    list.appendChild(el);
+  });
+}
+
+function openWalletModal(){ buildWalletList(); document.getElementById('wmBackdrop').classList.add('open'); closeDiscDrop(); }
+function closeWalletModal(){ document.getElementById('wmBackdrop').classList.remove('open'); }
+function handleBackdropClick(e){ if(e.target===document.getElementById('wmBackdrop')) closeWalletModal(); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeWalletModal(); });
+
+// ── Connect ────────────────────────────────────────────────────
+async function connectWallet(walletDef){
+  const prov = walletDef.detect();
+  if(!prov){ window.open(walletDef.installUrl,'_blank'); return; }
+  closeWalletModal();
+  try{
+    const res  = await prov.connect();
+    wallet     = res.publicKey;
+    provider   = prov;
+    activeWalletDef = walletDef;
+    conn = new Connection(RPC,'confirmed');
+    renderWallet(true);
+    await fetchBalance();
+    fetchStats();
+  }catch(e){ setStatus('err','Connection rejected.'); }
+}
+
+async function disconnectWallet(){
+  if(provider){ try{ await provider.disconnect(); }catch{} }
+  wallet=null; provider=null; activeWalletDef=null; userBalance=0;
+  renderWallet(false); closeDiscDrop();
+}
+
+// ── Disconnect dropdown ────────────────────────────────────────
+function handleWalletClick(){ wallet ? toggleDiscDrop() : openWalletModal(); }
+function toggleDiscDrop(){ discOpen=!discOpen; document.getElementById('discDrop').classList.toggle('open',discOpen); }
+function closeDiscDrop(){ discOpen=false; document.getElementById('discDrop').classList.remove('open'); }
+document.addEventListener('click',e=>{ if(!document.getElementById('walletWrap').contains(e.target)) closeDiscDrop(); });
+
+function copyAddress(){
+  if(!wallet) return;
+  navigator.clipboard.writeText(wallet.toBase58()).then(()=>{
+    const b=document.getElementById('copyBtn'); b.textContent='Copied!';
+    setTimeout(()=>b.textContent='Copy',1600);
+  });
+}
+function viewOnExplorer(){ if(wallet) window.open(`https://solscan.io/account/${wallet.toBase58()}`,'_blank'); closeDiscDrop(); }
+
+// ── Render connected state ─────────────────────────────────────
+function renderWallet(connected){
+  const btn=document.getElementById('walletBtn');
+  const ovl=document.getElementById('overlay');
+  const sbtn=document.getElementById('stakeBtn');
+  if(connected && wallet){
+    const a=wallet.toBase58(), s=a.slice(0,4)+'…'+a.slice(-4);
+    btn.innerHTML=`<div class="wallet-dot"></div>${s}`;
+    btn.classList.add('connected');
+    document.getElementById('discAddrTxt').textContent=s;
+    // Set wallet icon in dropdown
+    if(activeWalletDef){
+      const encoded = btoa(unescape(encodeURIComponent(activeWalletDef.icon)));
+      document.getElementById('discIcon').src=`data:image/svg+xml;base64,${encoded}`;
+    }
+    ovl.classList.add('hide'); sbtn.disabled=false;
+  } else {
+    btn.innerHTML='Connect Wallet'; btn.classList.remove('connected');
+    ovl.classList.remove('hide'); sbtn.disabled=true;
+    document.getElementById('balDisplay').textContent='0.00 URANUS';
+    document.getElementById('discAddrTxt').textContent='—';
+    document.getElementById('discIcon').src='';
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// SOLANA
+// ══════════════════════════════════════════════════════
+async function findATA(owner,mint){
+  const [a]=await PublicKey.findProgramAddress([owner.toBuffer(),TOKEN_PROG.toBuffer(),mint.toBuffer()],ATA_PROG);
+  return a;
+}
+function ixCreateATA(payer,ata,owner,mint){
+  return new TransactionInstruction({
+    keys:[{pubkey:payer,isSigner:true,isWritable:true},{pubkey:ata,isSigner:false,isWritable:true},{pubkey:owner,isSigner:false,isWritable:false},{pubkey:mint,isSigner:false,isWritable:false},{pubkey:SystemProgram.programId,isSigner:false,isWritable:false},{pubkey:TOKEN_PROG,isSigner:false,isWritable:false},{pubkey:SYSVAR_RENT_PUBKEY,isSigner:false,isWritable:false}],
+    programId:ATA_PROG,data:new Uint8Array(0),
+  });
+}
+function ixTransfer(src,dst,owner,amount){
+  const data=new Uint8Array(9); data[0]=3;
+  let amt=BigInt(amount);
+  for(let i=0;i<8;i++){data[1+i]=Number(amt&0xffn);amt>>=8n;}
+  return new TransactionInstruction({keys:[{pubkey:src,isSigner:false,isWritable:true},{pubkey:dst,isSigner:false,isWritable:true},{pubkey:owner,isSigner:true,isWritable:false}],programId:TOKEN_PROG,data});
+}
+
+async function fetchBalance(){
+  if(!wallet) return;
+  try{
+    const mint=new PublicKey(URANUS_MINT);
+    const ata=await findATA(wallet,mint);
+    const info=await conn.getTokenAccountBalance(ata);
+    userBalance=parseFloat(info.value.uiAmount||0);
+    document.getElementById('balDisplay').textContent=userBalance.toLocaleString(undefined,{maximumFractionDigits:4})+' URANUS';
+  }catch{ userBalance=0; document.getElementById('balDisplay').textContent='0.00 URANUS'; }
+}
+async function fetchStats(){
+  try{ const r=await fetch(`https://api.solscan.io/token/holders?tokenAddress=${URANUS_MINT}&offset=0&size=1`); const j=await r.json(); if(j.data?.total) document.getElementById('hStat').textContent=Number(j.data.total).toLocaleString(); }catch{}
+  try{
+    const mint=new PublicKey(URANUS_MINT);
+    const vault=new PublicKey(STAKE_VAULT);
+    const vATA=await findATA(vault,mint);
+    const info=await conn.getTokenAccountBalance(vATA);
+    const a=parseFloat(info.value.uiAmount||0);
+    document.getElementById('sStat').textContent=a>=1e6?(a/1e6).toFixed(2)+'M':a>=1e3?(a/1e3).toFixed(2)+'K':a.toLocaleString();
+  }catch{}
+}
+
+// ── UI ─────────────────────────────────────────────────────────
+function setMax(){ document.getElementById('amtInput').value=userBalance; refreshPreview(); }
+function pickDur(btn){ document.querySelectorAll('.dur-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); selMonths=parseInt(btn.dataset.m); selApy=parseInt(btn.dataset.a); refreshPreview(); }
+function refreshPreview(){
+  const amt=parseFloat(document.getElementById('amtInput').value)||0;
+  const reward=amt*(selApy/100)*(selMonths/12);
+  const unlock=new Date(); unlock.setMonth(unlock.getMonth()+selMonths);
+  document.getElementById('pvApy').textContent=selApy+'%';
+  document.getElementById('pvUnlock').textContent=unlock.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'2-digit'});
+  document.getElementById('pvReward').textContent=reward.toFixed(4);
+}
+
+// ── Stake ──────────────────────────────────────────────────────
+async function doStake(){
+  if(!wallet||!provider){ setStatus('err','Connect your wallet first.'); return; }
+  const amt=parseFloat(document.getElementById('amtInput').value);
+  if(!amt||amt<=0)  { setStatus('err','Enter a valid amount.'); return; }
+  if(amt>userBalance){ setStatus('err','Insufficient URANUS balance.'); return; }
+
+  const btn=document.getElementById('stakeBtn');
+  btn.disabled=true; setBtnTxt('<span class="spin"></span>Building transaction…');
+  setStatus('info','Preparing transaction…');
+
+  try{
+    const mint=new PublicKey(URANUS_MINT); const vault=new PublicKey(STAKE_VAULT);
+    const srcATA=await findATA(wallet,mint); const dstATA=await findATA(vault,mint);
+    const tx=new Transaction();
+    const {blockhash,lastValidBlockHeight}=await conn.getLatestBlockhash();
+    tx.recentBlockhash=blockhash; tx.feePayer=wallet;
+    const dstInfo=await conn.getAccountInfo(dstATA);
+    if(!dstInfo) tx.add(ixCreateATA(wallet,dstATA,vault,mint));
+    const rawAmt=BigInt(Math.round(amt*(10**TOKEN_DECIMALS)));
+    tx.add(ixTransfer(srcATA,dstATA,wallet,rawAmt));
+
+    setBtnTxt('<span class="spin"></span>Awaiting signature…');
+    setStatus('info','Please confirm in your wallet…');
+    const signed=await provider.signTransaction(tx);
+
+    setBtnTxt('<span class="spin"></span>Broadcasting…');
+    setStatus('info','Sending to network…');
+    const sig=await conn.sendRawTransaction(signed.serialize(),{skipPreflight:false});
+    await conn.confirmTransaction({signature:sig,blockhash,lastValidBlockHeight},'confirmed');
+
+    setStatus('ok',`✓ Staked ${amt.toLocaleString()} URANUS for ${selMonths} months! &nbsp;<a class="tx-link" href="https://solscan.io/tx/${sig}" target="_blank" rel="noopener">View on Solscan ↗</a>`);
+    setBtnTxt('✓ Staked!');
+    document.getElementById('amtInput').value='';
+    await fetchBalance(); fetchStats(); refreshPreview();
+    setTimeout(()=>{ btn.disabled=false; setBtnTxt('Stake Uranus'); },4000);
+  }catch(e){
+    console.error(e);
+    const msg=e?.message||String(e);
+    setStatus('err', msg.includes('rejected')||msg.includes('User rejected')?'Transaction rejected by user.':msg.includes('insufficient')?'Insufficient SOL for fees.':'Transaction failed: '+msg.slice(0,120));
+    btn.disabled=false; setBtnTxt('Stake Uranus');
+  }
+}
+
+function setBtnTxt(h){ document.getElementById('stakeBtnTxt').innerHTML=h; }
+function setStatus(t,h){ const e=document.getElementById('statusEl'); e.className='status show '+t; e.innerHTML=h; }
+
+// ── Stars ──────────────────────────────────────────────────────
+;(function(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<220;i++){
+    const s=document.createElement('div'); s.className='star';
+    const sz=Math.random()<.75?1:Math.random()<.85?2:3;
+    const op=(Math.random()*.6+.15).toFixed(2);
+    s.style.cssText=`left:${(Math.random()*100).toFixed(2)}%;top:${(Math.random()*100).toFixed(2)}%;width:${sz}px;height:${sz}px;--op:${op};--dur:${(Math.random()*4+2).toFixed(1)}s;animation-delay:${(Math.random()*5).toFixed(1)}s`;
+    c.appendChild(s);
+  }
+})();
+
+refreshPreview();
+
+// Auto-reconnect on reload
+;(async()=>{
+  for(const w of WALLETS){
+    const p=w.detect();
+    if(p?.isConnected && p.publicKey){
+      wallet=p.publicKey; provider=p; activeWalletDef=w;
+      conn=new Connection(RPC,'confirmed');
+      renderWallet(true); await fetchBalance(); fetchStats(); break;
+    }
+  }
+})();
+</script>
+</body>
+</html>
