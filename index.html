@@ -957,19 +957,18 @@ async function doStake(){
     const dstATA=await findATA(vault,mint);
     const tx=new Transaction();
 
-    // Get blockhash via proxy
-    const bhResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getLatestBlockhash',params:[{commitment:'finalized'}]})});
-    const bhJson = await bhResp.json();
-    const blockhash = bhJson.result.value.blockhash;
-    const lastValidBlockHeight = bhJson.result.value.lastValidBlockHeight;
-    tx.recentBlockhash=blockhash; tx.feePayer=wallet;
-
     // Check if vault ATA exists via proxy
     const accResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({jsonrpc:'2.0',id:2,method:'getAccountInfo',params:[dstATA.toBase58(),{encoding:'base64'}]})});
     const accJson = await accResp.json();
-    if(!accJson.result.value) tx.add(ixCreateATA(wallet,dstATA,vault,mint));
+    if(!accJson?.result?.value) tx.add(ixCreateATA(wallet,dstATA,vault,mint));
+
+    // Fetch blockhash as late as possible — right before signing — so it doesn't expire
+    const bhResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getLatestBlockhash',params:[{commitment:'processed'}]})});
+    const bhJson = await bhResp.json();
+    if(!bhJson?.result?.value?.blockhash) throw new Error('Failed to fetch blockhash. Check your connection and try again.');
+    tx.recentBlockhash=bhJson.result.value.blockhash; tx.feePayer=wallet;
 
     const rawAmt = BigInt(Math.round(amt * Math.pow(10, TOKEN_DECIMALS)));
     tx.add(ixTransfer(srcATA,dstATA,wallet,rawAmt));
@@ -981,10 +980,13 @@ async function doStake(){
     setBtnTxt('<span class="spin"></span>Broadcasting…');
     setStatus('info','Sending to network…');
     const serialized = signed.serialize();
-    const rawTx = btoa(String.fromCharCode(...serialized));
+    // Safe base64 encoding — avoids call stack overflow on large transactions
+    let binary=''; const bytes=new Uint8Array(serialized);
+    for(let i=0;i<bytes.byteLength;i++) binary+=String.fromCharCode(bytes[i]);
+    const rawTx = btoa(binary);
     const sendResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({jsonrpc:'2.0',id:3,method:'sendTransaction',
-        params:[rawTx,{encoding:'base64',skipPreflight:false,maxRetries:3}]})});
+        params:[rawTx,{encoding:'base64',skipPreflight:true,maxRetries:5}]})});
     const sendJson = await sendResp.json();
     if(sendJson.error) throw new Error(sendJson.error.message||'Send failed');
     const sig = sendJson.result;
