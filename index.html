@@ -81,31 +81,157 @@
     .drop-row.disc:hover { background:rgba(255,80,80,.07); }
 
     /* ════ WALLET MODAL ════ */
-    .wm-backdrop { position:fixed; inset:0; background:rgba(2,5,12,.88); backdrop-filter:blur(8px); z-index:500; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
+    .wm-backdrop {
+      position:fixed; inset:0; z-index:500;
+      background:rgba(2,5,12,.92); backdrop-filter:blur(14px);
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity .3s;
+    }
     .wm-backdrop.open { opacity:1; pointer-events:all; }
-    .wm-box { width:100%; max-width:400px; margin:16px; background:#07111f; border:1px solid var(--border); position:relative; overflow:hidden; transform:translateY(16px) scale(.97); transition:transform .25s; }
+
+    .wm-box {
+      width:100%; max-width:420px; margin:16px;
+      background:linear-gradient(160deg,#070f1e 0%,#04080f 100%);
+      border:1px solid rgba(0,212,255,.2);
+      position:relative; overflow:hidden;
+      transform:translateY(20px) scale(.96);
+      transition:transform .35s cubic-bezier(.22,1,.36,1);
+      box-shadow: 0 0 60px rgba(0,212,255,.08), 0 0 120px rgba(123,47,255,.06), inset 0 0 40px rgba(0,212,255,.02);
+    }
     .wm-backdrop.open .wm-box { transform:translateY(0) scale(1); }
-    .wm-box::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--cyan),var(--teal),transparent); }
-    .wm-head { display:flex; align-items:center; justify-content:space-between; padding:22px 24px 14px; }
-    .wm-title { font-family:'Orbitron',sans-serif; font-size:14px; letter-spacing:3px; color:var(--cyan); }
-    .wm-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:20px; line-height:1; padding:2px 8px; transition:color .2s; }
-    .wm-close:hover { color:var(--text); }
-    .wm-subtitle { padding:0 24px 16px; font-size:11px; letter-spacing:1px; color:var(--muted); }
-    .wm-list { padding:0 14px 16px; display:flex; flex-direction:column; gap:3px; }
-    .wm-item { display:flex; align-items:center; gap:14px; padding:12px 14px; cursor:pointer; border:1px solid transparent; transition:all .18s; background:rgba(255,255,255,.015); }
-    .wm-item:hover { border-color:var(--border); background:rgba(0,212,255,.05); }
+
+    /* animated top bar */
+    .wm-box::before {
+      content:''; position:absolute; top:0; left:-100%; right:0; height:2px;
+      background:linear-gradient(90deg,transparent 0%,#00d4ff 30%,#30ffe0 55%,#7b2fff 80%,transparent 100%);
+      animation:wm-scan 3s ease-in-out infinite;
+    }
+    @keyframes wm-scan { 0%{left:-100%} 100%{left:100%} }
+
+    /* subtle corner brackets */
+    .wm-box::after {
+      content:''; position:absolute; inset:0; pointer-events:none;
+      background:
+        linear-gradient(to right, rgba(0,212,255,.35) 2px, transparent 2px) 0 0 / 16px 16px no-repeat,
+        linear-gradient(to bottom, rgba(0,212,255,.35) 2px, transparent 2px) 0 0 / 16px 16px no-repeat,
+        linear-gradient(to left,  rgba(0,212,255,.35) 2px, transparent 2px) 100% 0 / 16px 16px no-repeat,
+        linear-gradient(to bottom,rgba(0,212,255,.35) 2px, transparent 2px) 100% 0 / 16px 16px no-repeat,
+        linear-gradient(to right, rgba(0,212,255,.35) 2px, transparent 2px) 0 100% / 16px 16px no-repeat,
+        linear-gradient(to top,   rgba(0,212,255,.35) 2px, transparent 2px) 0 100% / 16px 16px no-repeat,
+        linear-gradient(to left,  rgba(0,212,255,.35) 2px, transparent 2px) 100% 100% / 16px 16px no-repeat,
+        linear-gradient(to top,   rgba(0,212,255,.35) 2px, transparent 2px) 100% 100% / 16px 16px no-repeat;
+    }
+
+    .wm-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:26px 26px 10px;
+    }
+    .wm-head-left { display:flex; align-items:center; gap:12px; }
+
+    /* mini planet in header */
+    .wm-planet {
+      width:32px; height:32px; border-radius:50%; flex-shrink:0;
+      background:radial-gradient(circle at 35% 32%, #d0fffc 0%, #40e0d0 25%, #1fb8c8 52%, #053a5a 100%);
+      box-shadow: 0 0 14px rgba(0,212,255,.6), inset -6px -4px 12px rgba(0,0,0,.4);
+      position:relative;
+    }
+    .wm-planet::after {
+      content:''; position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%) rotateX(70deg);
+      width:48px; height:48px;
+      border:1.5px solid rgba(0,212,255,.55); border-radius:50%;
+    }
+
+    .wm-title {
+      font-family:'Orbitron',sans-serif; font-size:15px;
+      font-weight:900; letter-spacing:4px;
+      background:linear-gradient(90deg,#fff,#00d4ff,#30ffe0);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .wm-close {
+      background:none; border:1px solid rgba(0,212,255,.2); color:rgba(200,240,255,.5);
+      cursor:pointer; font-size:16px; line-height:1;
+      width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+      transition:all .2s; clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+    }
+    .wm-close:hover { border-color:var(--cyan); color:#fff; background:rgba(0,212,255,.1); }
+
+    .wm-subtitle {
+      padding:2px 26px 18px;
+      font-family:'Orbitron',sans-serif; font-size:9px;
+      letter-spacing:3px; color:rgba(200,240,255,.28); text-transform:uppercase;
+    }
+
+    /* divider */
+    .wm-divider {
+      height:1px; margin:0 20px 16px;
+      background:linear-gradient(90deg,transparent,rgba(0,212,255,.3),rgba(48,255,224,.2),transparent);
+    }
+
+    .wm-list { padding:0 14px 6px; display:flex; flex-direction:column; gap:4px; }
+
+    .wm-item {
+      display:flex; align-items:center; gap:16px;
+      padding:14px 16px; cursor:pointer;
+      border:1px solid rgba(0,212,255,.07);
+      background:rgba(0,212,255,.02);
+      transition:all .2s; position:relative; overflow:hidden;
+      clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+    }
+    .wm-item::before {
+      content:''; position:absolute; left:0; top:0; bottom:0; width:2px;
+      background:linear-gradient(to bottom,#00d4ff,#30ffe0);
+      transform:scaleY(0); transition:transform .2s; transform-origin:top;
+    }
+    .wm-item:hover { border-color:rgba(0,212,255,.3); background:rgba(0,212,255,.06); transform:translateX(3px); }
+    .wm-item:hover::before { transform:scaleY(1); }
     .wm-item:hover .wm-arrow { opacity:1; transform:translateX(0); }
-    .w-icon { width:40px; height:40px; border-radius:10px; flex-shrink:0; overflow:hidden; }
-    .w-icon svg { width:100%; height:100%; display:block; }
-    .w-info { flex:1; }
-    .w-name { font-family:'Orbitron',sans-serif; font-size:12px; letter-spacing:1px; color:var(--text); }
-    .w-status { font-size:10px; letter-spacing:1px; margin-top:4px; }
+    .wm-item.installed { border-color:rgba(48,255,224,.12); }
+
+    /* icon wrapper with glow ring */
+    .w-icon-wrap {
+      width:46px; height:46px; position:relative; flex-shrink:0;
+    }
+    .w-icon {
+      width:46px; height:46px; border-radius:12px;
+      overflow:hidden; position:relative; z-index:1;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .w-icon svg, .w-icon img { width:100%; height:100%; display:block; }
+    .w-glow-ring {
+      position:absolute; inset:-3px; border-radius:15px; z-index:0;
+      background:transparent; border:1px solid transparent;
+      transition:all .2s;
+    }
+    .wm-item:hover .w-glow-ring { border-color:rgba(0,212,255,.4); box-shadow:0 0 12px rgba(0,212,255,.25); }
+    .wm-item.installed:hover .w-glow-ring { border-color:rgba(48,255,224,.5); box-shadow:0 0 14px rgba(48,255,224,.3); }
+
+    .w-info { flex:1; min-width:0; }
+    .w-name {
+      font-family:'Orbitron',sans-serif; font-size:12px;
+      font-weight:700; letter-spacing:2px; color:var(--text);
+      transition:color .2s;
+    }
+    .wm-item:hover .w-name { color:#fff; }
+    .w-status { font-family:'Rajdhani',sans-serif; font-size:11px; letter-spacing:2px; margin-top:3px; display:flex; align-items:center; gap:5px; }
     .w-status.inst { color:var(--teal); }
-    .w-status.get  { color:var(--muted); }
-    .wm-arrow { color:var(--cyan); font-size:18px; opacity:0; transform:translateX(-4px); transition:all .18s; }
-    .wm-footer { padding:14px 24px 20px; border-top:1px solid var(--border); text-align:center; font-size:11px; letter-spacing:1px; color:var(--muted); }
-    .wm-footer a { color:var(--cyan); text-decoration:none; }
-    .wm-footer a:hover { text-decoration:underline; }
+    .w-status.get  { color:rgba(200,240,255,.3); }
+    .w-dot { width:5px; height:5px; border-radius:50%; background:var(--teal); box-shadow:0 0 6px var(--teal); animation:blink 2s infinite; }
+    .w-status.get .w-dot { background:rgba(200,240,255,.25); box-shadow:none; animation:none; }
+
+    .wm-arrow { color:var(--cyan); font-size:16px; opacity:0; transform:translateX(-6px); transition:all .2s; flex-shrink:0; }
+
+    .wm-footer {
+      margin:14px 14px 18px;
+      padding:14px 18px; text-align:center;
+      border:1px solid rgba(0,212,255,.1);
+      background:rgba(0,212,255,.02);
+      font-family:'Orbitron',sans-serif; font-size:9px;
+      letter-spacing:2px; color:rgba(200,240,255,.3);
+      clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+    }
+    .wm-footer a { color:var(--cyan); text-decoration:none; transition:color .2s; }
+    .wm-footer a:hover { color:var(--teal); }
 
     /* MAIN */
     main { flex:1; display:flex; flex-direction:column; align-items:center; padding:56px 20px 60px; gap:36px; }
@@ -257,13 +383,17 @@
 <div class="wm-backdrop" id="wmBackdrop" onclick="handleBackdropClick(event)">
   <div class="wm-box" role="dialog" aria-modal="true" aria-label="Connect Wallet">
     <div class="wm-head">
-      <div class="wm-title">Connect a Wallet</div>
+      <div class="wm-head-left">
+        <div class="wm-planet"></div>
+        <div class="wm-title">CONNECT WALLET</div>
+      </div>
       <button class="wm-close" onclick="closeWalletModal()" aria-label="Close">✕</button>
     </div>
-    <div class="wm-subtitle">Choose your Solana wallet to continue</div>
+    <div class="wm-subtitle">Select your Solana wallet to continue</div>
+    <div class="wm-divider"></div>
     <div class="wm-list" id="wmList"></div>
     <div class="wm-footer">
-      New to Solana wallets? &nbsp;<a href="https://phantom.app" target="_blank" rel="noopener">Get Phantom ↗</a>
+      New to Solana? &nbsp;<a href="https://phantom.app" target="_blank" rel="noopener">Get Phantom ↗</a>
     </div>
   </div>
 </div>
@@ -465,15 +595,22 @@ const WALLETS = [
 function buildWalletList(){
   const list = document.getElementById('wmList');
   list.innerHTML='';
-  WALLETS.forEach(w=>{
+  WALLETS.forEach((w,idx)=>{
     const installed = !!w.detect();
     const el = document.createElement('div');
-    el.className='wm-item';
+    el.className='wm-item' + (installed?' installed':'');
+    el.style.animationDelay = (idx * 0.05) + 's';
     el.innerHTML=`
-      <div class="w-icon">${w.icon}</div>
+      <div class="w-icon-wrap">
+        <div class="w-glow-ring"></div>
+        <div class="w-icon">${w.icon}</div>
+      </div>
       <div class="w-info">
         <div class="w-name">${w.name}</div>
-        <div class="w-status ${installed?'inst':'get'}">${installed?'● Installed':'○ Not installed'}</div>
+        <div class="w-status ${installed?'inst':'get'}">
+          <span class="w-dot"></span>
+          ${installed ? 'INSTALLED' : 'NOT INSTALLED'}
+        </div>
       </div>
       <div class="wm-arrow">›</div>`;
     el.onclick = ()=> installed ? connectWallet(w) : window.open(w.installUrl,'_blank');
