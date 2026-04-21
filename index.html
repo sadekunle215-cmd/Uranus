@@ -955,70 +955,102 @@ async function doStake(){
     const vault=new PublicKey(STAKE_VAULT);
     const srcATA=await findATA(wallet,mint);
     const dstATA=await findATA(vault,mint);
-    const tx=new Transaction();
 
-    // Check if vault ATA exists via proxy
+    // ── 1. Check vault ATA exists ──────────────────────────────
+    setBtnTxt('<span class="spin"></span>Checking vault…');
     const accResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({jsonrpc:'2.0',id:2,method:'getAccountInfo',params:[dstATA.toBase58(),{encoding:'base64'}]})});
     const accJson = await accResp.json();
-    if(!accJson?.result?.value) tx.add(ixCreateATA(wallet,dstATA,vault,mint));
+    const vaultAtaExists = !!accJson?.result?.value;
 
-    // Fetch blockhash as late as possible — right before signing — so it doesn't expire
+    // ── 2. Check user ATA exists ───────────────────────────────
+    const srcAccResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:5,method:'getAccountInfo',params:[srcATA.toBase58(),{encoding:'jsonParsed'}]})});
+    const srcAccJson = await srcAccResp.json();
+    if(!srcAccJson?.result?.value) throw new Error('No URANUS token account found in your wallet.');
+
+    // ── 3. Fetch fresh blockhash RIGHT before building tx ──────
+    setBtnTxt('<span class="spin"></span>Fetching blockhash…');
     const bhResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getLatestBlockhash',params:[{commitment:'processed'}]})});
+      body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getLatestBlockhash',params:[{commitment:'confirmed'}]})});
     const bhJson = await bhResp.json();
     if(!bhJson?.result?.value?.blockhash) throw new Error('Failed to fetch blockhash. Check your connection and try again.');
-    tx.recentBlockhash=bhJson.result.value.blockhash; tx.feePayer=wallet;
+    const { blockhash, lastValidBlockHeight } = bhJson.result.value;
 
+    // ── 4. Build transaction ───────────────────────────────────
+    const tx=new Transaction();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = wallet;
+    if(!vaultAtaExists) tx.add(ixCreateATA(wallet,dstATA,vault,mint));
     const rawAmt = BigInt(Math.round(amt * Math.pow(10, TOKEN_DECIMALS)));
     tx.add(ixTransfer(srcATA,dstATA,wallet,rawAmt));
 
+    // ── 5. Sign ────────────────────────────────────────────────
     setBtnTxt('<span class="spin"></span>Awaiting signature…');
     setStatus('info','Please confirm in your wallet…');
     const signed=await provider.signTransaction(tx);
 
+    // ── 6. Send with retries (preflight ON so errors surface) ──
     setBtnTxt('<span class="spin"></span>Broadcasting…');
     setStatus('info','Sending to network…');
     const serialized = signed.serialize();
-    // Safe base64 encoding — avoids call stack overflow on large transactions
     let binary=''; const bytes=new Uint8Array(serialized);
     for(let i=0;i<bytes.byteLength;i++) binary+=String.fromCharCode(bytes[i]);
     const rawTx = btoa(binary);
-    const sendResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({jsonrpc:'2.0',id:3,method:'sendTransaction',
-        params:[rawTx,{encoding:'base64',skipPreflight:true,maxRetries:5}]})});
-    const sendJson = await sendResp.json();
-    if(sendJson.error) throw new Error(sendJson.error.message||'Send failed');
-    const sig = sendJson.result;
 
+    let sig = null;
+    for(let attempt=0; attempt<3; attempt++){
+      const sendResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({jsonrpc:'2.0',id:3,method:'sendTransaction',
+          params:[rawTx,{encoding:'base64',skipPreflight:false,maxRetries:3,preflightCommitment:'confirmed'}]})});
+      const sendJson = await sendResp.json();
+      if(sendJson.error){
+        if(attempt===2) throw new Error(sendJson.error.message||'Send failed after 3 attempts');
+        await new Promise(r=>setTimeout(r,1000*(attempt+1)));
+        continue;
+      }
+      sig = sendJson.result;
+      break;
+    }
+    if(!sig) throw new Error('Failed to get transaction signature from network.');
+
+    // ── 7. Poll until confirmed OR blockhash expires ───────────
     setBtnTxt('<span class="spin"></span>Confirming…');
-    setStatus('info','Confirming on Solana…');
+    setStatus('info',`Confirming on Solana… <a class="tx-link" href="https://solscan.io/tx/${sig}" target="_blank" rel="noopener">Track ↗</a>`);
 
-    // Poll for confirmation — max 60s (30 × 2s)
     let confirmed = false;
-    for(let i=0;i<30;i++){
+    for(let i=0;i<45;i++){
       await new Promise(r=>setTimeout(r,2000));
       try{
+        // Check if blockhash has expired
+        const bhCheckResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({jsonrpc:'2.0',id:10,method:'getBlockHeight',params:[{commitment:'confirmed'}]})});
+        const bhCheckJson = await bhCheckResp.json();
+        const currentHeight = bhCheckJson?.result;
+        if(currentHeight && currentHeight > lastValidBlockHeight + 5){
+          throw new Error(`Transaction expired — blockhash too old. Check <a href="https://solscan.io/tx/${sig}" target="_blank">Solscan</a>. If not found, please try again.`);
+        }
+
         const sigResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({jsonrpc:'2.0',id:4,method:'getSignatureStatuses',params:[[sig],{searchTransactionHistory:true}]})});
-        if(!sigResp.ok) continue; // network blip — keep polling
+        if(!sigResp.ok) continue;
         const sigJson = await sigResp.json();
         const status = sigJson?.result?.value?.[0];
-        if(!status){ continue; } // not yet visible — keep polling
-        if(status.err) throw new Error('Transaction rejected on-chain. No tokens were transferred.');
+        if(!status) continue;
+        if(status.err) throw new Error('Transaction rejected on-chain: '+(JSON.stringify(status.err)||'unknown error')+'. No tokens were transferred.');
         if(status.confirmationStatus==='confirmed'||status.confirmationStatus==='finalized'){
           confirmed=true; break;
         }
       }catch(pollErr){
-        if(pollErr.message.includes('rejected on-chain')) throw pollErr;
-        // RPC call itself failed — keep polling
+        if(pollErr.message.includes('rejected on-chain')||pollErr.message.includes('expired')) throw pollErr;
       }
     }
 
     if(!confirmed){
-      throw new Error(`Transaction not confirmed after 60s. Check <a href="https://solscan.io/tx/${sig}" target="_blank">Solscan</a> to see if it landed, then try again.`);
+      throw new Error(`Transaction not confirmed after 90s. Check <a href="https://solscan.io/tx/${sig}" target="_blank">Solscan</a> to see if it landed, then try again.`);
     }
 
+    // ── 8. Success — proof only opens on real confirmation ─────
     setStatus('ok',`✓ Staked ${amt.toLocaleString()} URANUS for ${selMonths} months! &nbsp;<a class="tx-link" href="https://solscan.io/tx/${sig}" target="_blank" rel="noopener">View on Solscan ↗</a>`);
     setBtnTxt('✓ Staked!');
     document.getElementById('amtInput').value='';
