@@ -188,6 +188,61 @@
       .stat-card { min-width:45%; }
       .planet-wrap { display:none; }
     }
+
+    /* ════ PROOF OF STAKE MODAL ════ */
+    .proof-backdrop {
+      position:fixed; inset:0; background:rgba(2,5,12,.92);
+      backdrop-filter:blur(12px); z-index:600;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity .3s;
+    }
+    .proof-backdrop.open { opacity:1; pointer-events:all; }
+    .proof-box {
+      width:100%; max-width:520px; margin:16px;
+      background:#07111f; border:1px solid rgba(0,212,255,.25);
+      position:relative; overflow:hidden;
+      transform:translateY(24px) scale(.96);
+      transition:transform .35s cubic-bezier(.22,1,.36,1);
+    }
+    .proof-backdrop.open .proof-box { transform:translateY(0) scale(1); }
+    .proof-box::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:2px;
+      background:linear-gradient(90deg,transparent,#00d4ff,#30ffe0,#7b2fff,transparent);
+    }
+    .proof-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:20px 24px 12px;
+    }
+    .proof-title {
+      font-family:'Orbitron',sans-serif; font-size:13px;
+      letter-spacing:4px; color:#00d4ff;
+    }
+    .proof-close {
+      background:none; border:none; color:rgba(200,240,255,.4);
+      cursor:pointer; font-size:22px; line-height:1; padding:2px 8px;
+      transition:color .2s;
+    }
+    .proof-close:hover { color:#c8f0ff; }
+    .proof-canvas-wrap { padding:0 20px; }
+    .proof-canvas-wrap canvas { width:100%; display:block; border:1px solid rgba(0,212,255,.12); }
+    .proof-actions {
+      display:flex; gap:10px; padding:18px 20px 22px;
+    }
+    .proof-dl-btn {
+      flex:1; padding:13px; background:linear-gradient(135deg,rgba(0,212,255,.15),rgba(48,255,224,.08));
+      border:1px solid #00d4ff; color:#fff;
+      font-family:'Orbitron',sans-serif; font-size:11px;
+      font-weight:700; letter-spacing:3px; cursor:pointer;
+      text-transform:uppercase; transition:all .25s;
+    }
+    .proof-dl-btn:hover { background:rgba(0,212,255,.22); box-shadow:0 0 30px rgba(0,212,255,.3); }
+    .proof-share-btn {
+      padding:13px 20px; background:transparent;
+      border:1px solid rgba(0,212,255,.3); color:rgba(200,240,255,.6);
+      font-family:'Orbitron',sans-serif; font-size:11px;
+      letter-spacing:2px; cursor:pointer; transition:all .25s;
+    }
+    .proof-share-btn:hover { border-color:#00d4ff; color:#c8f0ff; }
   </style>
 </head>
 <body>
@@ -303,11 +358,28 @@
   <footer>URANUS PROTOCOL &nbsp;·&nbsp; POWERED BY SOLANA &nbsp;·&nbsp; STAKE SMARTER</footer>
 </div>
 
+<!-- ════ PROOF OF STAKE MODAL ════ -->
+<div class="proof-backdrop" id="proofBackdrop" onclick="handleProofBackdrop(event)">
+  <div class="proof-box" id="proofBox">
+    <div class="proof-head">
+      <div class="proof-title">✦ STAKE CONFIRMED</div>
+      <button class="proof-close" onclick="closeProof()">×</button>
+    </div>
+    <div class="proof-canvas-wrap">
+      <canvas id="proofCanvas" width="960" height="560"></canvas>
+    </div>
+    <div class="proof-actions">
+      <button class="proof-dl-btn" onclick="downloadProof()">⬇ Download Proof</button>
+      <button class="proof-share-btn" onclick="copyProofTx()">⧉ Copy TX</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════════
 // CONFIG  ← edit these before going live
 // ══════════════════════════════════════════════════════
-const URANUS_MINT    = 'YOUR_URANUS_TOKEN_MINT_ADDRESS_HERE'; // ← REPLACE
+const URANUS_MINT    = 'BFgdzMkTPdKKJeTipv2njtDEwhKxkgFueJQfJGt1jups';
 const TOKEN_DECIMALS = 9;                                      // ← REPLACE
 // ══════════════════════════════════════════════════════
 const STAKE_VAULT = '8kP2nDXXxNZtef2GEmiuX2KmcvUE8pLZc6AjcCQzi17x';
@@ -566,6 +638,10 @@ async function doStake(){
     setBtnTxt('✓ Staked!');
     document.getElementById('amtInput').value='';
     await fetchBalance(); fetchStats(); refreshPreview();
+    // Show proof of stake receipt
+    const unlockDate = new Date(); unlockDate.setMonth(unlockDate.getMonth()+selMonths);
+    const unlockStr = unlockDate.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'});
+    setTimeout(()=>{ openProof(amt, selMonths, selApy, unlockStr, sig); }, 600);
     setTimeout(()=>{ btn.disabled=false; setBtnTxt('Stake Uranus'); },4000);
   }catch(e){
     console.error(e);
@@ -603,6 +679,168 @@ refreshPreview();
     }
   }
 })();
+
+// ══════════════════════════════════════════════════════
+// PROOF OF STAKE — Canvas Receipt Generator
+// ══════════════════════════════════════════════════════
+let proofTxSig = '';
+
+function openProof(amount, months, apy, unlockDate, txSig) {
+  proofTxSig = txSig;
+  const walletAddr = wallet ? wallet.toBase58() : '—';
+  renderProofCanvas(amount, months, apy, unlockDate, txSig, walletAddr);
+  document.getElementById('proofBackdrop').classList.add('open');
+}
+function closeProof() { document.getElementById('proofBackdrop').classList.remove('open'); }
+function handleProofBackdrop(e) { if(e.target===document.getElementById('proofBackdrop')) closeProof(); }
+function copyProofTx() {
+  if(!proofTxSig) return;
+  navigator.clipboard.writeText(proofTxSig).then(()=>{
+    const b=document.querySelector('.proof-share-btn'); b.textContent='✓ Copied!';
+    setTimeout(()=>b.textContent='⧉ Copy TX',1800);
+  });
+}
+function downloadProof() {
+  const canvas=document.getElementById('proofCanvas');
+  const link=document.createElement('a');
+  link.download=`uranus-stake-proof-${Date.now()}.png`;
+  link.href=canvas.toDataURL('image/png'); link.click();
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+
+function renderProofCanvas(amount, months, apy, unlockDate, txSig, walletAddr) {
+  const canvas=document.getElementById('proofCanvas');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+
+  // Background
+  ctx.fillStyle='#04080f'; ctx.fillRect(0,0,W,H);
+
+  // Star field (deterministic)
+  const rng=n=>Math.abs(Math.sin(n*9301+49297)*233280)%1;
+  for(let i=0;i<200;i++){
+    const x=rng(i)*W, y=rng(i+100)*H;
+    const r=rng(i+200)<0.8?0.7:rng(i+200)<0.95?1.2:1.8;
+    const op=(0.15+rng(i+300)*0.55).toFixed(2);
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${op})`; ctx.fill();
+  }
+
+  // Grid lines
+  ctx.strokeStyle='rgba(0,212,255,0.04)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Decorative planet top-right
+  const pGrad=ctx.createRadialGradient(W-90,65,4,W-100,58,85);
+  pGrad.addColorStop(0,'#d0fffc'); pGrad.addColorStop(0.2,'#40e0d0');
+  pGrad.addColorStop(0.6,'#1fb8c8'); pGrad.addColorStop(1,'#053a5a');
+  ctx.save(); ctx.beginPath(); ctx.arc(W-100,65,65,0,Math.PI*2);
+  ctx.fillStyle=pGrad; ctx.shadowColor='rgba(0,212,255,0.5)'; ctx.shadowBlur=36; ctx.fill();
+  ctx.restore(); ctx.save(); ctx.translate(W-100,65); ctx.rotate(-0.3); ctx.scale(1,0.28);
+  [82,98,114].forEach((rr,ri)=>{
+    ctx.beginPath(); ctx.arc(0,0,rr,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(0,212,255,${0.5-ri*0.13})`; ctx.lineWidth=ri===0?3:1.5; ctx.stroke();
+  }); ctx.restore();
+
+  // Top gradient line
+  const tl=ctx.createLinearGradient(0,0,W,0);
+  tl.addColorStop(0,'transparent'); tl.addColorStop(0.25,'#00d4ff');
+  tl.addColorStop(0.6,'#30ffe0'); tl.addColorStop(0.85,'#7b2fff'); tl.addColorStop(1,'transparent');
+  ctx.fillStyle=tl; ctx.fillRect(0,0,W,3);
+
+  // Bottom gradient line
+  const bl=ctx.createLinearGradient(0,0,W,0);
+  bl.addColorStop(0,'transparent'); bl.addColorStop(0.5,'rgba(123,47,255,0.5)'); bl.addColorStop(1,'transparent');
+  ctx.fillStyle=bl; ctx.fillRect(0,H-2,W,2);
+
+  // Left accent bar
+  const ag=ctx.createLinearGradient(0,80,0,H-80);
+  ag.addColorStop(0,'#00d4ff'); ag.addColorStop(0.5,'#30ffe0'); ag.addColorStop(1,'#7b2fff');
+  ctx.fillStyle=ag; ctx.fillRect(44,80,3,H-160);
+
+  // Logo orb
+  const og=ctx.createRadialGradient(78,105,3,75,103,22);
+  og.addColorStop(0,'#c0fffc'); og.addColorStop(0.4,'#40e0d0'); og.addColorStop(1,'#1ab8c8');
+  ctx.beginPath(); ctx.arc(75,108,20,0,Math.PI*2);
+  ctx.fillStyle=og; ctx.shadowColor='rgba(0,212,255,0.8)'; ctx.shadowBlur=18; ctx.fill(); ctx.shadowBlur=0;
+  ctx.save(); ctx.translate(75,108); ctx.rotate(-0.2); ctx.scale(1,0.28);
+  ctx.beginPath(); ctx.arc(0,0,30,0,Math.PI*2);
+  ctx.strokeStyle='rgba(0,212,255,0.7)'; ctx.lineWidth=2; ctx.stroke(); ctx.restore();
+
+  // Logo text
+  const ttg=ctx.createLinearGradient(105,90,105,130);
+  ttg.addColorStop(0,'#fff'); ttg.addColorStop(0.5,'#00d4ff'); ttg.addColorStop(1,'#30ffe0');
+  ctx.font='900 30px Orbitron,monospace'; ctx.fillStyle=ttg; ctx.fillText('URANUS',105,118);
+  ctx.font='500 9px Orbitron,monospace'; ctx.fillStyle='rgba(200,240,255,0.4)'; ctx.fillText('STAKING PROTOCOL',107,136);
+
+  // Proof label
+  ctx.font='700 10px Orbitron,monospace'; ctx.fillStyle='rgba(200,240,255,0.3)'; ctx.fillText('✦  PROOF OF STAKE  ✦',66,186);
+
+  // Amount
+  const amtStr=Number(amount).toLocaleString(undefined,{maximumFractionDigits:4});
+  const ag2=ctx.createLinearGradient(60,205,60,275);
+  ag2.addColorStop(0,'#ffffff'); ag2.addColorStop(1,'#00d4ff');
+  ctx.font='900 62px Orbitron,monospace'; ctx.fillStyle=ag2; ctx.fillText(amtStr,66,272);
+  const aw=ctx.measureText(amtStr).width;
+  ctx.font='600 15px Orbitron,monospace'; ctx.fillStyle='rgba(48,255,224,0.8)'; ctx.fillText('URANUS',66+aw+12,267);
+
+  // Divider
+  const dg=ctx.createLinearGradient(66,0,W-66,0);
+  dg.addColorStop(0,'rgba(0,212,255,0.6)'); dg.addColorStop(0.5,'rgba(48,255,224,0.3)'); dg.addColorStop(1,'transparent');
+  ctx.fillStyle=dg; ctx.fillRect(66,292,W-132,1);
+
+  // Stats grid
+  const stats=[
+    {label:'DURATION', value:months+(months===1?' MONTH':' MONTHS')},
+    {label:'APY',      value:apy+'%'},
+    {label:'UNLOCK DATE', value:unlockDate},
+    {label:'NETWORK',  value:'SOLANA MAINNET'},
+  ];
+  const colW=(W-152)/2;
+  stats.forEach((s,i)=>{
+    const col=i%2, row=Math.floor(i/2);
+    const x=66+col*(colW+20), y=310+row*72;
+    ctx.fillStyle='rgba(0,212,255,0.04)';
+    roundRect(ctx,x,y,colW,58,2); ctx.fill();
+    ctx.strokeStyle='rgba(0,212,255,0.12)'; ctx.lineWidth=1;
+    roundRect(ctx,x,y,colW,58,2); ctx.stroke();
+    const ca=ctx.createLinearGradient(x,y,x+colW,y);
+    ca.addColorStop(0,'transparent'); ca.addColorStop(0.5,'rgba(0,212,255,0.35)'); ca.addColorStop(1,'transparent');
+    ctx.fillStyle=ca; ctx.fillRect(x,y,colW,1.5);
+    ctx.font='500 8px Orbitron,monospace'; ctx.fillStyle='rgba(200,240,255,0.32)'; ctx.fillText(s.label,x+14,y+21);
+    ctx.font='700 14px Orbitron,monospace'; ctx.fillStyle='#30ffe0'; ctx.fillText(s.value,x+14,y+42);
+  });
+
+  // TX signature box
+  const txY=H-108;
+  ctx.fillStyle='rgba(0,212,255,0.03)'; ctx.fillRect(66,txY,W-132,48);
+  ctx.strokeStyle='rgba(0,212,255,0.1)'; ctx.lineWidth=1; ctx.strokeRect(66,txY,W-132,48);
+  ctx.font='500 8px Orbitron,monospace'; ctx.fillStyle='rgba(200,240,255,0.28)'; ctx.fillText('TRANSACTION SIGNATURE',80,txY+17);
+  ctx.font='500 10px monospace'; ctx.fillStyle='rgba(0,212,255,0.65)';
+  ctx.fillText(txSig?(txSig.slice(0,52)+'…'):'N/A',80,txY+37);
+
+  // Wallet + timestamp footer
+  ctx.font='500 8px Orbitron,monospace'; ctx.fillStyle='rgba(200,240,255,0.18)';
+  const sw=walletAddr!=='—'?walletAddr.slice(0,6)+'…'+walletAddr.slice(-6):'—';
+  ctx.fillText('WALLET  '+sw,66,H-42);
+  const ts=new Date().toUTCString().replace(' GMT',' UTC');
+  const tsW=ctx.measureText(ts).width; ctx.fillText(ts,W-66-tsW,H-42);
+
+  // Corner brackets
+  const bL=18,bT=2; ctx.fillStyle='rgba(0,212,255,0.45)';
+  ctx.fillRect(14,14,bL,bT); ctx.fillRect(14,14,bT,bL);
+  ctx.fillRect(W-14-bL,14,bL,bT); ctx.fillRect(W-14-bT,14,bT,bL);
+  ctx.fillRect(14,H-14-bT,bL,bT); ctx.fillRect(14,H-14-bL,bT,bL);
+  ctx.fillRect(W-14-bL,H-14-bT,bL,bT); ctx.fillRect(W-14-bT,H-14-bL,bT,bL);
+}
 </script>
 </body>
 </html>
