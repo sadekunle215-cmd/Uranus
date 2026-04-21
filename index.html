@@ -84,10 +84,12 @@
     .wm-backdrop {
       position:fixed; inset:0; z-index:500;
       background:rgba(2,5,12,.92); backdrop-filter:blur(14px);
-      display:none; align-items:center; justify-content:center;
-      opacity:0; pointer-events:none; transition:opacity .3s;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none;
+      visibility:hidden;
+      transition:opacity .3s, visibility .3s;
     }
-    .wm-backdrop.open { display:flex; opacity:1; pointer-events:all; }
+    .wm-backdrop.open { opacity:1; pointer-events:all; visibility:visible; }
 
     .wm-box {
       width:100%; max-width:420px; margin:16px;
