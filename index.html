@@ -5,7 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>URANUS · Staking Protocol</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/@solana/web3.js@1.91.8/lib/index.iife.min.js"></script>
+  <script>
+  (function(){
+    var cdns=[
+      'https://unpkg.com/@solana/web3.js@1.91.8/lib/index.iife.min.js',
+      'https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.8/lib/index.iife.min.js'
+    ];
+    var i=0;
+    function load(){
+      if(i>=cdns.length){ console.error('All Solana CDNs failed'); return; }
+      var s=document.createElement('script'); s.src=cdns[i++]; s.onerror=load;
+      document.head.appendChild(s);
+    }
+    load();
+  })();
+  </script>
   <style>
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
@@ -85,10 +99,9 @@
       position:fixed; inset:0; z-index:500;
       background:rgba(2,5,12,.92); backdrop-filter:blur(14px);
       display:flex; align-items:center; justify-content:center;
-      opacity:0; pointer-events:none; visibility:hidden;
-      transition:opacity .3s, visibility .3s;
+      opacity:0; pointer-events:none; transition:opacity .3s;
     }
-    .wm-backdrop.open { opacity:1; pointer-events:all; visibility:visible; }
+    .wm-backdrop.open { opacity:1; pointer-events:all; }
 
     .wm-box {
       width:100%; max-width:420px; margin:16px;
@@ -355,10 +368,9 @@
       position:fixed; inset:0; background:rgba(2,5,12,.92);
       backdrop-filter:blur(12px); z-index:600;
       display:flex; align-items:center; justify-content:center;
-      opacity:0; pointer-events:none; visibility:hidden;
-      transition:opacity .3s, visibility .3s;
+      opacity:0; pointer-events:none; transition:opacity .3s;
     }
-    .proof-backdrop.open { opacity:1; pointer-events:all; visibility:visible; }
+    .proof-backdrop.open { opacity:1; pointer-events:all; }
     .proof-box {
       width:100%; max-width:520px; margin:16px;
       background:#07111f; border:1px solid rgba(0,212,255,.25);
@@ -441,61 +453,34 @@
       background:linear-gradient(90deg,transparent,#7b2fff,#00d4ff,#30ffe0,transparent);
       animation:wm-scan 3s ease-in-out infinite;
     }
-    .manual-head {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:22px 24px 10px;
-    }
+    .manual-head { display:flex; align-items:center; justify-content:space-between; padding:22px 24px 10px; }
     .manual-title { font-family:'Orbitron',sans-serif; font-size:12px; letter-spacing:4px; color:#a060ff; }
     .manual-close {
       background:none; border:1px solid rgba(123,47,255,.25); color:rgba(200,240,255,.45);
       cursor:pointer; font-size:16px; line-height:1;
-      width:30px; height:30px; display:flex; align-items:center; justify-content:center;
-      transition:all .2s;
+      width:30px; height:30px; display:flex; align-items:center; justify-content:center; transition:all .2s;
     }
     .manual-close:hover { border-color:#7b2fff; color:#fff; background:rgba(123,47,255,.12); }
-
-    /* step indicators */
-    .manual-steps {
-      display:flex; gap:6px; padding:0 24px 16px; align-items:center;
-    }
-    .ms-dot {
-      width:26px; height:4px; border-radius:2px;
-      background:rgba(123,47,255,.2); transition:background .3s;
-    }
+    .manual-steps { display:flex; gap:6px; padding:0 24px 16px; align-items:center; }
+    .ms-dot { width:26px; height:4px; border-radius:2px; background:rgba(123,47,255,.2); transition:background .3s; }
     .ms-dot.active { background:#7b2fff; box-shadow:0 0 8px rgba(123,47,255,.6); }
     .ms-dot.done   { background:rgba(48,255,224,.4); }
-
     .manual-body { padding:6px 24px 24px; }
-
-    /* address box */
-    .m-addr-box {
-      background:rgba(0,212,255,.04); border:1px solid rgba(0,212,255,.15);
-      padding:14px 16px; margin-bottom:14px;
-    }
+    .m-addr-box { background:rgba(0,212,255,.04); border:1px solid rgba(0,212,255,.15); padding:14px 16px; margin-bottom:14px; }
     .m-addr-lbl { font-size:9px; letter-spacing:3px; color:var(--muted); font-family:'Orbitron',sans-serif; margin-bottom:8px; }
-    .m-addr-val {
-      font-family:monospace; font-size:11px; color:var(--cyan);
-      word-break:break-all; line-height:1.6;
-    }
+    .m-addr-val { font-family:monospace; font-size:11px; color:var(--cyan); word-break:break-all; line-height:1.6; }
     .m-copy-addr {
       margin-top:10px; width:100%; padding:8px; background:rgba(0,212,255,.07);
       border:1px solid rgba(0,212,255,.25); color:var(--cyan);
-      font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:2px;
-      cursor:pointer; transition:all .2s;
+      font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:2px; cursor:pointer; transition:all .2s;
     }
     .m-copy-addr:hover { background:rgba(0,212,255,.14); }
-
     .m-msg-box {
       border:1px solid rgba(123,47,255,.25); background:rgba(123,47,255,.05);
-      padding:12px 14px; margin-bottom:18px;
-      font-size:12px; line-height:1.7; color:var(--text); letter-spacing:.5px;
+      padding:12px 14px; margin-bottom:18px; font-size:12px; line-height:1.7; color:var(--text); letter-spacing:.5px;
     }
     .m-msg-box strong { color:#a060ff; font-family:'Orbitron',sans-serif; font-size:10px; }
-
-    /* month grid for manual */
     .m-dur-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:18px; }
-
-    /* inputs */
     .m-field { margin-bottom:16px; }
     .m-field-lbl { font-size:9px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:7px; display:block; font-family:'Orbitron',sans-serif; }
     .m-input {
@@ -505,35 +490,22 @@
     }
     .m-input:focus { border-color:var(--cyan); box-shadow:0 0 0 1px rgba(0,212,255,.12); }
     .m-input::placeholder { color:rgba(255,255,255,.2); font-size:12px; }
-
-    /* action buttons */
     .m-btn {
       width:100%; padding:15px; margin-top:4px;
       background:linear-gradient(135deg,rgba(123,47,255,.18),rgba(0,212,255,.1));
       border:1px solid #7b2fff; color:#fff;
-      font-family:'Orbitron',sans-serif; font-size:12px;
-      font-weight:700; letter-spacing:4px; cursor:pointer;
-      text-transform:uppercase; transition:all .25s;
+      font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; letter-spacing:4px;
+      cursor:pointer; text-transform:uppercase; transition:all .25s;
     }
     .m-btn:hover { background:rgba(123,47,255,.28); box-shadow:0 0 30px rgba(123,47,255,.35); }
-
-    /* countdown */
-    .m-countdown {
-      text-align:center; padding:20px 0 10px;
-    }
+    .m-countdown { text-align:center; padding:20px 0 10px; }
     .m-countdown-ring {
       width:90px; height:90px; border-radius:50%;
-      border:3px solid rgba(123,47,255,.2);
-      border-top-color:#7b2fff;
-      margin:0 auto 16px;
-      display:flex; align-items:center; justify-content:center;
-      position:relative;
-      box-shadow:0 0 30px rgba(123,47,255,.25);
+      border:3px solid rgba(123,47,255,.2); border-top-color:#7b2fff;
+      margin:0 auto 16px; display:flex; align-items:center; justify-content:center;
+      position:relative; box-shadow:0 0 30px rgba(123,47,255,.25);
     }
-    .m-countdown-num {
-      font-family:'Orbitron',sans-serif; font-size:32px;
-      font-weight:900; color:#a060ff;
-    }
+    .m-countdown-num { font-family:'Orbitron',sans-serif; font-size:32px; font-weight:900; color:#a060ff; }
     .m-countdown-ring.spinning { animation:spin 1s linear infinite; }
     .m-countdown-lbl { font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:3px; color:var(--muted); }
     .m-done-icon { font-size:48px; text-align:center; display:block; margin-bottom:8px; animation:pulse-done .6s ease-out; }
@@ -755,7 +727,6 @@
         <button class="m-btn" style="margin-top:18px;" onclick="closeManual()">Close</button>
       </div>
     </div>
-
   </div>
 </div>
 
@@ -777,18 +748,27 @@
 </div>
 
 <script>
-// ══════════════════════════════════════════════════════
-// CONFIG  ← edit these before going live
-// ══════════════════════════════════════════════════════
 const URANUS_MINT    = 'BFgdzMkTPdKKJeTipv2njtDEwhKxkgFueJQfJGt1jups';
-const TOKEN_DECIMALS = 9;                                      // ← REPLACE
-// ══════════════════════════════════════════════════════
+const TOKEN_DECIMALS = 9;
 const STAKE_VAULT = 'EAKTGDkrWXk8P4ST13McVfAUM7tWpEj2twZ8EJJAKbS6';
 const RPC         = '/api/rpc';
 
-const {Connection,PublicKey,Transaction,TransactionInstruction,SystemProgram,SYSVAR_RENT_PUBKEY} = solanaWeb3;
-const TOKEN_PROG = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
-const ATA_PROG   = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bS');
+let Connection,PublicKey,Transaction,TransactionInstruction,SystemProgram,SYSVAR_RENT_PUBKEY;
+let TOKEN_PROG, ATA_PROG;
+
+function initSolana(){
+  if(typeof solanaWeb3==='undefined') return false;
+  ({Connection,PublicKey,Transaction,TransactionInstruction,SystemProgram,SYSVAR_RENT_PUBKEY}=solanaWeb3);
+  TOKEN_PROG=new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+  ATA_PROG=new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bS');
+  return true;
+}
+function waitForSolana(cb,tries){
+  tries=tries||0;
+  if(initSolana()){cb();return;}
+  if(tries>100){console.error('solanaWeb3 never loaded');return;}
+  setTimeout(function(){waitForSolana(cb,tries+1);},50);
+}
 
 let conn=null, wallet=null, provider=null, activeWalletDef=null;
 let userBalance=0, selMonths=12, selApy=25, discOpen=false;
@@ -1305,7 +1285,7 @@ async function doStake(){
 function setBtnTxt(h){ document.getElementById('stakeBtnTxt').innerHTML=h; }
 function setStatus(t,h){ const e=document.getElementById('statusEl'); e.className='status show '+t; e.innerHTML=h; }
 
-// ── Stars ──────────────────────────────────────────────────────
+// ── Stars (runs immediately, no Solana needed) ─────────────────
 ;(function(){
   const c=document.getElementById('stars');
   for(let i=0;i<220;i++){
@@ -1319,8 +1299,9 @@ function setStatus(t,h){ const e=document.getElementById('statusEl'); e.classNam
 
 refreshPreview();
 
-// Auto-reconnect on reload
-;(async()=>{
+// Boot Solana-dependent code once library is ready
+waitForSolana(async function(){
+  // Auto-reconnect on reload
   for(const w of WALLETS){
     const p=w.detect();
     if(p?.isConnected && p.publicKey){
@@ -1329,7 +1310,7 @@ refreshPreview();
       renderWallet(true); await fetchBalance(); fetchStats(); break;
     }
   }
-})();
+});
 
 // ══════════════════════════════════════════════════════
 // PROOF OF STAKE — Canvas Receipt Generator
@@ -1358,119 +1339,7 @@ function downloadProof() {
   link.href=canvas.toDataURL('image/png'); link.click();
 }
 
-// ══════════════════════════════════════════════════════
-// MANUAL STAKE SYSTEM
-// ══════════════════════════════════════════════════════
-const MANUAL_VAULT = 'EGkjjBatgZoepoXM2o3xEQxrdp3GXt6GFXfpXxQCvW1u';
-let mSelMonths = 12, mSelApy = 25;
-
-function openManual() {
-  mSelMonths = 12; mSelApy = 25;
-  mShowStep(1);
-  document.getElementById('mAmtInput').value = '';
-  document.getElementById('mTxInput').value = '';
-  // reset dur buttons
-  document.querySelectorAll('#mStep2 .dur-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.m === '12');
-  });
-  document.getElementById('manualBackdrop').classList.add('open');
-}
-
-function closeManual() {
-  document.getElementById('manualBackdrop').classList.remove('open');
-}
-
-function handleManualBackdrop(e) {
-  if (e.target === document.getElementById('manualBackdrop')) closeManual();
-}
-
-function mShowStep(n) {
-  [1,2,3,4].forEach(i => {
-    document.getElementById('mStep'+i).style.display = i===n ? '' : 'none';
-    const dot = document.getElementById('msDot'+i);
-    dot.className = 'ms-dot' + (i < n ? ' done' : i === n ? ' active' : '');
-  });
-  const titles = {
-    1: '⚡ SEND YOUR TOKENS',
-    2: '📋 STAKE DETAILS',
-    3: '🔗 TRANSACTION HASH',
-    4: '⏳ CONFIRMING'
-  };
-  document.getElementById('manualTitle').textContent = titles[n];
-}
-
-function copyManualAddr() {
-  navigator.clipboard.writeText(MANUAL_VAULT).then(() => {
-    const b = document.querySelector('.m-copy-addr');
-    const orig = b.textContent;
-    b.textContent = '✓ Copied!';
-    setTimeout(() => b.textContent = orig, 1800);
-  });
-}
-
-function mPickDur(btn) {
-  document.querySelectorAll('#mStep2 .dur-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  mSelMonths = parseInt(btn.dataset.m);
-  mSelApy = parseInt(btn.dataset.a);
-}
-
-function mGoStep2() { mShowStep(2); }
-
-function mGoStep3() {
-  const amt = parseFloat(document.getElementById('mAmtInput').value);
-  if (!amt || amt <= 0) {
-    const s = document.getElementById('mStep2Status');
-    s.style.setProperty('display','block','important');
-    s.className='status show err'; s.textContent='Please enter a valid amount.';
-    setTimeout(()=>s.style.setProperty('display','none','important'),3000);
-    return;
-  }
-  mShowStep(3);
-}
-
-function mGoStep4() {
-  const tx = document.getElementById('mTxInput').value.trim();
-  if (!tx || tx.length < 20) {
-    const s = document.getElementById('mStep3Status');
-    s.style.setProperty('display','block','important');
-    s.className='status show err'; s.textContent='Please enter a valid transaction hash.';
-    setTimeout(()=>s.style.setProperty('display','none','important'),3000);
-    return;
-  }
-  mShowStep(4);
-  mRunCountdown(tx);
-}
-
-function mRunCountdown(txSig) {
-  const numEl   = document.getElementById('mCountdownNum');
-  const ringEl  = document.getElementById('mCountdownRing');
-  const wrapEl  = document.getElementById('mCountdownWrap');
-  const doneEl  = document.getElementById('mDoneWrap');
-  let count = 5;
-  numEl.textContent = count;
-  const timer = setInterval(() => {
-    count--;
-    numEl.textContent = count;
-    if (count <= 0) {
-      clearInterval(timer);
-      ringEl.classList.remove('spinning');
-      // fade out countdown, show done
-      setTimeout(() => {
-        wrapEl.style.display = 'none';
-        doneEl.style.display = '';
-        // generate proof
-        const amt    = parseFloat(document.getElementById('mAmtInput').value);
-        const unlockDate = new Date();
-        unlockDate.setMonth(unlockDate.getMonth() + mSelMonths);
-        const unlockStr = unlockDate.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'});
-        const walletAddr = wallet ? wallet.toBase58() : '—';
-        setTimeout(() => openProof(amt, mSelMonths, mSelApy, unlockStr, txSig, walletAddr), 400);
-      }, 300);
-    }
-  }, 1000);
-}
-
+function roundRect(ctx,x,y,w,h,r){
   ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
   ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
   ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h);
@@ -1673,6 +1542,117 @@ function renderProofCanvas(amount, months, apy, unlockDate, txSig, walletAddr) {
     ctx.fillRect(x,y,bL*sx,bT*sy);
     ctx.fillRect(x,y,bT*sx,bL*sy);
   });
+}
+</script>
+</body>
+
+<!-- ══════════════════════════════════════════════════
+     MANUAL STAKE SYSTEM
+══════════════════════════════════════════════════ -->
+<script>
+const MANUAL_VAULT = 'EGkjjBatgZoepoXM2o3xEQxrdp3GXt6GFXfpXxQCvW1u';
+let mSelMonths = 12, mSelApy = 25;
+
+function openManual() {
+  mSelMonths = 12; mSelApy = 25;
+  mShowStep(1);
+  document.getElementById('mAmtInput').value = '';
+  document.getElementById('mTxInput').value = '';
+  document.getElementById('mCountdownWrap').style.display = '';
+  document.getElementById('mDoneWrap').style.display = 'none';
+  document.getElementById('mCountdownRing').classList.add('spinning');
+  document.querySelectorAll('#mStep2 .dur-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.m === '12');
+  });
+  document.getElementById('manualBackdrop').classList.add('open');
+}
+
+function closeManual() {
+  document.getElementById('manualBackdrop').classList.remove('open');
+}
+
+function handleManualBackdrop(e) {
+  if (e.target === document.getElementById('manualBackdrop')) closeManual();
+}
+
+function mShowStep(n) {
+  [1,2,3,4].forEach(i => {
+    document.getElementById('mStep'+i).style.display = i===n ? '' : 'none';
+    const dot = document.getElementById('msDot'+i);
+    dot.className = 'ms-dot' + (i < n ? ' done' : i === n ? ' active' : '');
+  });
+  const titles = { 1:'⚡ SEND YOUR TOKENS', 2:'📋 STAKE DETAILS', 3:'🔗 TRANSACTION HASH', 4:'⏳ CONFIRMING' };
+  document.getElementById('manualTitle').textContent = titles[n];
+}
+
+function copyManualAddr() {
+  navigator.clipboard.writeText(MANUAL_VAULT).then(() => {
+    const b = document.querySelector('.m-copy-addr');
+    const orig = b.textContent;
+    b.textContent = '✓ Copied!';
+    setTimeout(() => b.textContent = orig, 1800);
+  });
+}
+
+function mPickDur(btn) {
+  document.querySelectorAll('#mStep2 .dur-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  mSelMonths = parseInt(btn.dataset.m);
+  mSelApy = parseInt(btn.dataset.a);
+}
+
+function mGoStep2() { mShowStep(2); }
+
+function mGoStep3() {
+  const amt = parseFloat(document.getElementById('mAmtInput').value);
+  if (!amt || amt <= 0) {
+    const s = document.getElementById('mStep2Status');
+    s.style.setProperty('display','block','important');
+    s.className='status show err'; s.textContent='Please enter a valid amount.';
+    setTimeout(()=>s.style.setProperty('display','none','important'),3000);
+    return;
+  }
+  mShowStep(3);
+}
+
+function mGoStep4() {
+  const tx = document.getElementById('mTxInput').value.trim();
+  if (!tx || tx.length < 20) {
+    const s = document.getElementById('mStep3Status');
+    s.style.setProperty('display','block','important');
+    s.className='status show err'; s.textContent='Please enter a valid transaction hash.';
+    setTimeout(()=>s.style.setProperty('display','none','important'),3000);
+    return;
+  }
+  mShowStep(4);
+  mRunCountdown(tx);
+}
+
+function mRunCountdown(txSig) {
+  const numEl  = document.getElementById('mCountdownNum');
+  const ringEl = document.getElementById('mCountdownRing');
+  const wrapEl = document.getElementById('mCountdownWrap');
+  const doneEl = document.getElementById('mDoneWrap');
+  let count = 5;
+  numEl.textContent = count;
+  const timer = setInterval(() => {
+    count--;
+    numEl.textContent = count;
+    if (count <= 0) {
+      clearInterval(timer);
+      ringEl.classList.remove('spinning');
+      setTimeout(() => {
+        wrapEl.style.display = 'none';
+        doneEl.style.display = '';
+        const amt = parseFloat(document.getElementById('mAmtInput').value);
+        const unlockDate = new Date();
+        unlockDate.setMonth(unlockDate.getMonth() + mSelMonths);
+        const unlockStr = unlockDate.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'});
+        const walletAddr = wallet ? wallet.toBase58() : '—';
+        setTimeout(() => openProof(amt, mSelMonths, mSelApy, unlockStr, txSig, walletAddr), 400);
+      }, 300);
+    }
+  }, 1000);
 }
 </script>
 </body>
