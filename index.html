@@ -707,43 +707,67 @@ function ixTransfer(src,dst,owner,amount){
 }
 
 async function fetchBalance(){
-  if(!wallet) return;
-  // Try multiple RPCs in case one fails
+  if(!wallet) return false;
+  const walletPubkey = wallet.toBase58();
   const RPCS = [
     'https://api.mainnet-beta.solana.com',
-    'https://solana-mainnet.g.alchemy.com/v2/demo',
     'https://rpc.ankr.com/solana',
+    'https://solana-mainnet.g.alchemy.com/v2/demo',
   ];
+
+  // METHOD 1: Raw JSON-RPC getTokenAccountsByOwner (most reliable)
+  for(const rpc of RPCS){
+    try{
+      const resp = await fetch(rpc, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          jsonrpc:'2.0', id:1,
+          method:'getTokenAccountsByOwner',
+          params:[
+            walletPubkey,
+            { mint: URANUS_MINT },
+            { encoding:'jsonParsed', commitment:'confirmed' }
+          ]
+        })
+      });
+      const json = await resp.json();
+      if(json.error){ console.warn('RPC error:', rpc, json.error); continue; }
+      const accounts = json?.result?.value || [];
+      userBalance = accounts.length > 0
+        ? parseFloat(accounts[0].account.data.parsed.info.tokenAmount.uiAmount || 0)
+        : 0;
+      document.getElementById('balDisplay').textContent =
+        userBalance.toLocaleString(undefined,{maximumFractionDigits:4})+' URANUS';
+      conn = new Connection(rpc,'confirmed');
+      return true;
+    }catch(err){ console.warn('fetchBalance RPC failed:', rpc, err?.message); }
+  }
+
+  // METHOD 2: Web3.js fallback
   for(const rpc of RPCS){
     try{
       const c = new Connection(rpc,'confirmed');
-      const mint=new PublicKey(URANUS_MINT);
-      const ata=await findATA(wallet,mint);
-      const info=await c.getTokenAccountBalance(ata);
-      userBalance=parseFloat(info.value.uiAmount||0);
-      document.getElementById('balDisplay').textContent=userBalance.toLocaleString(undefined,{maximumFractionDigits:4})+' URANUS';
-      conn = c; // use the working RPC going forward
-      return;
-    }catch(err){
-      console.warn('RPC failed:',rpc,err?.message);
-    }
+      const mint = new PublicKey(URANUS_MINT);
+      const accounts = await c.getParsedTokenAccountsByOwner(wallet, {mint});
+      userBalance = accounts.value.length > 0
+        ? parseFloat(accounts.value[0].account.data.parsed.info.tokenAmount.uiAmount || 0)
+        : 0;
+      document.getElementById('balDisplay').textContent =
+        userBalance.toLocaleString(undefined,{maximumFractionDigits:4})+' URANUS';
+      conn = c;
+      return true;
+    }catch(err){ console.warn('Web3 fetchBalance failed:', rpc, err?.message); }
   }
-  // All RPCs failed — try fetching all token accounts as fallback
-  try{
-    const mint=new PublicKey(URANUS_MINT);
-    const accounts = await conn.getParsedTokenAccountsByOwner(wallet,[{mint}]);
-    if(accounts.value.length>0){
-      userBalance=parseFloat(accounts.value[0].account.data.parsed.info.tokenAmount.uiAmount||0);
-      document.getElementById('balDisplay').textContent=userBalance.toLocaleString(undefined,{maximumFractionDigits:4})+' URANUS';
-    } else {
-      userBalance=0;
-      document.getElementById('balDisplay').textContent='0.00 URANUS';
-    }
-  }catch{
-    userBalance=0;
-    document.getElementById('balDisplay').textContent='0.00 URANUS';
-  }
+
+  // All failed — show warning but don't block staking
+  console.error('All balance fetch methods failed');
+  document.getElementById('balDisplay').textContent = '⚠ Tap to retry';
+  document.getElementById('balDisplay').style.cursor = 'pointer';
+  document.getElementById('balDisplay').onclick = ()=>fetchBalance();
+  return false;
 }
+
 async function fetchStats(){
   try{ const r=await fetch(`https://api.solscan.io/token/holders?tokenAddress=${URANUS_MINT}&offset=0&size=1`); const j=await r.json(); if(j.data?.total) document.getElementById('hStat').textContent=Number(j.data.total).toLocaleString(); }catch{}
   try{
@@ -772,12 +796,18 @@ function refreshPreview(){
 async function doStake(){
   if(!wallet||!provider){ setStatus('err','Connect your wallet first.'); return; }
   const amt=parseFloat(document.getElementById('amtInput').value);
-  if(!amt||amt<=0)  { setStatus('err','Enter a valid amount.'); return; }
-  if(amt>userBalance){ setStatus('err','Insufficient URANUS balance.'); return; }
+  if(!amt||amt<=0){ setStatus('err','Enter a valid amount.'); return; }
 
-  // Re-fetch balance right before staking to ensure it's current
-  await fetchBalance();
-  if(amt>userBalance){ setStatus('err','Insufficient URANUS balance.'); return; }
+  // Always re-fetch balance fresh before staking
+  setStatus('info','Checking balance…');
+  const fetchOk = await fetchBalance();
+
+  // Only block if fetch succeeded AND balance is confirmed insufficient
+  if(fetchOk && amt > userBalance){
+    setStatus('err',`Insufficient URANUS balance. You have ${userBalance.toLocaleString(undefined,{maximumFractionDigits:4})} URANUS.`);
+    return;
+  }
+  // If fetch failed, we let the blockchain decide — it will reject if truly insufficient
 
   const btn=document.getElementById('stakeBtn');
   btn.disabled=true; setBtnTxt('<span class="spin"></span>Building transaction…');
@@ -792,11 +822,9 @@ async function doStake(){
     const {blockhash,lastValidBlockHeight}=await conn.getLatestBlockhash('finalized');
     tx.recentBlockhash=blockhash; tx.feePayer=wallet;
 
-    // Create vault ATA if it doesn't exist yet
     const dstInfo=await conn.getAccountInfo(dstATA);
     if(!dstInfo) tx.add(ixCreateATA(wallet,dstATA,vault,mint));
 
-    // Convert amount to raw units with proper decimals
     const rawAmt = BigInt(Math.round(amt * Math.pow(10, TOKEN_DECIMALS)));
     tx.add(ixTransfer(srcATA,dstATA,wallet,rawAmt));
 
@@ -812,30 +840,29 @@ async function doStake(){
     setStatus('info','Confirming on Solana…');
     await conn.confirmTransaction({signature:sig,blockhash,lastValidBlockHeight},'confirmed');
 
-    // ✅ Success
     setStatus('ok',`✓ Staked ${amt.toLocaleString()} URANUS for ${selMonths} months! &nbsp;<a class="tx-link" href="https://solscan.io/tx/${sig}" target="_blank" rel="noopener">View on Solscan ↗</a>`);
     setBtnTxt('✓ Staked!');
     document.getElementById('amtInput').value='';
     await fetchBalance(); fetchStats(); refreshPreview();
 
-    // Show proof of stake receipt after short delay
-    const unlockDate = new Date(); unlockDate.setMonth(unlockDate.getMonth()+selMonths);
-    const unlockStr = unlockDate.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'});
-    setTimeout(()=>{ openProof(amt, selMonths, selApy, unlockStr, sig); }, 600);
-    setTimeout(()=>{ btn.disabled=false; setBtnTxt('Stake Uranus'); }, 4000);
+    const unlockDate=new Date(); unlockDate.setMonth(unlockDate.getMonth()+selMonths);
+    const unlockStr=unlockDate.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'});
+    setTimeout(()=>{ openProof(amt,selMonths,selApy,unlockStr,sig); },600);
+    setTimeout(()=>{ btn.disabled=false; setBtnTxt('Stake Uranus'); },4000);
 
   }catch(e){
     console.error(e);
     const msg=e?.message||String(e);
-    let errMsg = 'Transaction failed: '+msg.slice(0,120);
+    let errMsg='Transaction failed: '+msg.slice(0,120);
     if(msg.includes('rejected')||msg.includes('User rejected')) errMsg='Transaction rejected by user.';
-    else if(msg.includes('insufficient lamports')||msg.includes('insufficient SOL')) errMsg='Insufficient SOL for transaction fees.';
+    else if(msg.includes('insufficient lamports')) errMsg='Insufficient SOL for transaction fees.';
     else if(msg.includes('0x1')) errMsg='Insufficient URANUS token balance.';
     else if(msg.includes('BlockhashNotFound')) errMsg='Network congestion — please try again.';
-    setStatus('err', errMsg);
+    setStatus('err',errMsg);
     btn.disabled=false; setBtnTxt('Stake Uranus');
   }
 }
+
 
 function setBtnTxt(h){ document.getElementById('stakeBtnTxt').innerHTML=h; }
 function setStatus(t,h){ const e=document.getElementById('statusEl'); e.className='status show '+t; e.innerHTML=h; }
