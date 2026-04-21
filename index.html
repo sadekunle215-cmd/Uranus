@@ -993,15 +993,30 @@ async function doStake(){
 
     setBtnTxt('<span class="spin"></span>Confirming…');
     setStatus('info','Confirming on Solana…');
-    // Poll for confirmation
+
+    // Poll for confirmation — max 60s (30 × 2s)
+    let confirmed = false;
     for(let i=0;i<30;i++){
       await new Promise(r=>setTimeout(r,2000));
-      const sigResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({jsonrpc:'2.0',id:4,method:'getSignatureStatuses',params:[[sig]]})});
-      const sigJson = await sigResp.json();
-      const status = sigJson?.result?.value?.[0];
-      if(status?.confirmationStatus==='confirmed'||status?.confirmationStatus==='finalized') break;
-      if(status?.err) throw new Error('Transaction failed on chain');
+      try{
+        const sigResp = await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({jsonrpc:'2.0',id:4,method:'getSignatureStatuses',params:[[sig],{searchTransactionHistory:true}]})});
+        if(!sigResp.ok) continue; // network blip — keep polling
+        const sigJson = await sigResp.json();
+        const status = sigJson?.result?.value?.[0];
+        if(!status){ continue; } // not yet visible — keep polling
+        if(status.err) throw new Error('Transaction rejected on-chain. No tokens were transferred.');
+        if(status.confirmationStatus==='confirmed'||status.confirmationStatus==='finalized'){
+          confirmed=true; break;
+        }
+      }catch(pollErr){
+        if(pollErr.message.includes('rejected on-chain')) throw pollErr;
+        // RPC call itself failed — keep polling
+      }
+    }
+
+    if(!confirmed){
+      throw new Error(`Transaction not confirmed after 60s. Check <a href="https://solscan.io/tx/${sig}" target="_blank">Solscan</a> to see if it landed, then try again.`);
     }
 
     setStatus('ok',`✓ Staked ${amt.toLocaleString()} URANUS for ${selMonths} months! &nbsp;<a class="tx-link" href="https://solscan.io/tx/${sig}" target="_blank" rel="noopener">View on Solscan ↗</a>`);
@@ -1017,11 +1032,14 @@ async function doStake(){
   }catch(e){
     console.error(e);
     const msg=e?.message||String(e);
-    let errMsg='Transaction failed: '+msg.slice(0,120);
+    let errMsg='Transaction failed: '+msg.slice(0,200);
     if(msg.includes('rejected')||msg.includes('User rejected')) errMsg='Transaction rejected by user.';
-    else if(msg.includes('insufficient lamports')) errMsg='Insufficient SOL for transaction fees.';
+    else if(msg.includes('insufficient lamports')) errMsg='Insufficient SOL for fees. Add a small amount of SOL to your wallet.';
     else if(msg.includes('0x1')) errMsg='Insufficient URANUS token balance.';
-    else if(msg.includes('BlockhashNotFound')) errMsg='Network congestion — please try again.';
+    else if(msg.includes('BlockhashNotFound')||msg.includes('Blockhash not found')) errMsg='Network congestion — blockhash expired. Please try again.';
+    else if(msg.includes('not confirmed after')) errMsg=msg; // pass through with Solscan link
+    else if(msg.includes('rejected on-chain')) errMsg=msg;
+    else if(msg.includes('RPC not configured')) errMsg='Server RPC not configured. Contact support.';
     setStatus('err',errMsg);
     btn.disabled=false; setBtnTxt('Stake Uranus');
   }
