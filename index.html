@@ -641,6 +641,55 @@
         <button class="manual-trigger-btn" onclick="openManual()">⚡ Use Manual Stake</button>
       </div>
     </div>
+
+    <!-- ════ STAKING HISTORY ════ -->
+    <div class="stake-card" style="width:100%;max-width:500px;margin-top:0;">
+      <div class="card-ttl" style="margin-bottom:20px;">📜 Staking History</div>
+      <div style="display:flex;flex-direction:column;gap:0;">
+
+        <!-- History Entry -->
+        <div style="background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.15);padding:18px 20px;position:relative;overflow:hidden;">
+          <!-- top accent line -->
+          <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,0.5),transparent);"></div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:3px;color:rgba(200,240,255,0.4);text-transform:uppercase;">Active Stake</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div style="width:6px;height:6px;border-radius:50%;background:#30ffe0;box-shadow:0 0 6px #30ffe0;animation:blink 2s infinite;"></div>
+              <span style="font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;color:#30ffe0;">LIVE</span>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+            <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(0,212,255,0.1);padding:12px 14px;">
+              <div style="font-size:9px;letter-spacing:2px;color:rgba(200,240,255,0.4);text-transform:uppercase;margin-bottom:6px;font-family:'Orbitron',sans-serif;">Staked Amount</div>
+              <div style="font-family:'Orbitron',sans-serif;font-size:17px;font-weight:700;color:#00d4ff;">3,627</div>
+              <div style="font-size:10px;letter-spacing:1px;color:rgba(200,240,255,0.35);margin-top:2px;">URANUS</div>
+            </div>
+
+            <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(0,212,255,0.1);padding:12px 14px;">
+              <div style="font-size:9px;letter-spacing:2px;color:rgba(200,240,255,0.4);text-transform:uppercase;margin-bottom:6px;font-family:'Orbitron',sans-serif;">Lock Duration</div>
+              <div style="font-family:'Orbitron',sans-serif;font-size:17px;font-weight:700;color:#a060ff;">6</div>
+              <div style="font-size:10px;letter-spacing:1px;color:rgba(200,240,255,0.35);margin-top:2px;">MONTHS</div>
+            </div>
+
+          </div>
+
+          <div style="margin-top:12px;background:rgba(48,255,224,0.04);border:1px solid rgba(48,255,224,0.18);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:9px;letter-spacing:2px;color:rgba(200,240,255,0.4);text-transform:uppercase;margin-bottom:5px;font-family:'Orbitron',sans-serif;">Daily Accrue</div>
+              <div style="font-family:'Orbitron',sans-serif;font-size:20px;font-weight:700;color:#30ffe0;text-shadow:0 0 12px rgba(48,255,224,0.5);">+2.1</div>
+              <div style="font-size:10px;letter-spacing:1px;color:rgba(48,255,224,0.5);margin-top:2px;">URANUS / DAY</div>
+            </div>
+            <div style="font-size:32px;opacity:0.15;">⚡</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <!-- ════ END HISTORY ════ -->
+
   </main>
 
   <footer>URANUS PROTOCOL &nbsp;·&nbsp; POWERED BY SOLANA &nbsp;·&nbsp; STAKE SMARTER</footer>
