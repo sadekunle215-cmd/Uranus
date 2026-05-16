@@ -643,7 +643,7 @@
     </div>
 
     <!-- ════ STAKING HISTORY ════ -->
-    <div class="stake-card" style="width:100%;max-width:500px;margin-top:0;">
+    <div class="stake-card" id="historySection" style="width:100%;max-width:500px;margin-top:0;display:none;">
       <div class="card-ttl" style="margin-bottom:20px;">📜 Staking History</div>
       <div style="display:flex;flex-direction:column;gap:0;">
 
@@ -664,7 +664,7 @@
 
             <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(0,212,255,0.1);padding:12px 14px;">
               <div style="font-size:9px;letter-spacing:2px;color:rgba(200,240,255,0.4);text-transform:uppercase;margin-bottom:6px;font-family:'Orbitron',sans-serif;">Staked Amount</div>
-              <div style="font-family:'Orbitron',sans-serif;font-size:17px;font-weight:700;color:#00d4ff;">3,627</div>
+              <div style="font-family:'Orbitron',sans-serif;font-size:17px;font-weight:700;color:#00d4ff;">8,316</div>
               <div style="font-size:10px;letter-spacing:1px;color:rgba(200,240,255,0.35);margin-top:2px;">URANUS</div>
             </div>
 
@@ -1005,6 +1005,7 @@ function renderWallet(connected){
       document.getElementById('discIcon').src = URL.createObjectURL(svgBlob);
     }
     ovl.classList.add('hide'); ovl.style.display='none'; sbtn.disabled=false;
+    document.getElementById('historySection').style.display='';
     // Force repaint on mobile
     setTimeout(()=>{ ovl.classList.add('hide'); ovl.style.display='none'; }, 100);
   } else {
@@ -1013,6 +1014,7 @@ function renderWallet(connected){
     document.getElementById('balDisplay').textContent='0.00 URANUS';
     document.getElementById('discAddrTxt').textContent='—';
     document.getElementById('discIcon').src='';
+    document.getElementById('historySection').style.display='none';
   }
 }
 
