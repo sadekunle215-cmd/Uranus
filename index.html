@@ -664,7 +664,7 @@
 
             <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(0,212,255,0.1);padding:12px 14px;">
               <div style="font-size:9px;letter-spacing:2px;color:rgba(200,240,255,0.4);text-transform:uppercase;margin-bottom:6px;font-family:'Orbitron',sans-serif;">Staked Amount</div>
-              <div style="font-family:'Orbitron',sans-serif;font-size:17px;font-weight:700;color:#00d4ff;">9,120</div>
+              <div style="font-family:'Orbitron',sans-serif;font-size:17px;font-weight:700;color:#00d4ff;">11,072</div>
               <div style="font-size:10px;letter-spacing:1px;color:rgba(200,240,255,0.35);margin-top:2px;">URANUS</div>
             </div>
 
@@ -689,6 +689,54 @@
       </div>
     </div>
     <!-- ════ END HISTORY ════ -->
+
+    <!-- ════ NFT ELIGIBILITY BANNER ════ -->
+    <div id="nftBanner" style="display:none;width:100%;max-width:500px;margin-top:0;">
+      <div style="position:relative;overflow:hidden;padding:22px 24px;background:linear-gradient(135deg,rgba(123,47,255,0.12),rgba(0,212,255,0.06));border:1px solid rgba(123,47,255,0.4);box-shadow:0 0 30px rgba(123,47,255,0.15);">
+        <!-- animated top bar -->
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#7b2fff,#00d4ff,#30ffe0,transparent);animation:wm-scan 3s ease-in-out infinite;"></div>
+
+        <!-- staked notice -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="width:8px;height:8px;border-radius:50%;background:#30ffe0;box-shadow:0 0 8px #30ffe0;animation:blink 2s infinite;flex-shrink:0;"></div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:2px;color:#30ffe0;">YOU HAVE <span style="color:#fff;font-weight:700;">10K URANUS</span> STAKED</div>
+        </div>
+
+        <!-- divider -->
+        <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(123,47,255,0.4),transparent);margin-bottom:16px;"></div>
+
+        <!-- NFT eligibility -->
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+          <div style="font-size:36px;filter:drop-shadow(0 0 10px rgba(123,47,255,0.8));">🪐</div>
+          <div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:3px;color:rgba(200,240,255,0.45);text-transform:uppercase;margin-bottom:5px;">NFT Eligibility</div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;background:linear-gradient(90deg,#7b2fff,#00d4ff,#30ffe0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">You're eligible to claim the</div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:15px;font-weight:900;letter-spacing:2px;background:linear-gradient(90deg,#fff,#00d4ff,#30ffe0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-top:2px;">Uranus Exclusive NFT ✦</div>
+          </div>
+        </div>
+
+        <!-- Claim button -->
+        <div id="nftClaimArea">
+          <button onclick="claimNFT()" id="nftClaimBtn" style="width:100%;padding:15px;background:linear-gradient(135deg,rgba(123,47,255,0.25),rgba(0,212,255,0.12));border:1px solid #7b2fff;color:#fff;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;letter-spacing:3px;cursor:pointer;text-transform:uppercase;transition:all .3s;">
+            ✦ CLAIM NFT — 0.4 SOL
+          </button>
+          <div id="nftClaimStatus" style="display:none;margin-top:10px;padding:12px 14px;font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;text-align:center;border:1px solid rgba(0,212,255,0.2);"></div>
+        </div>
+
+        <!-- Success state -->
+        <div id="nftClaimSuccess" style="display:none;text-align:center;padding:10px 0 4px;">
+          <div style="font-size:40px;margin-bottom:8px;">✅</div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:900;letter-spacing:3px;color:#30ffe0;margin-bottom:6px;">PAYMENT SENT!</div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;color:rgba(200,240,255,0.4);margin-bottom:10px;">Your NFT will be delivered to your wallet shortly.</div>
+          <div id="nftTxLink" style="font-size:10px;color:rgba(0,212,255,0.6);cursor:pointer;text-decoration:underline;letter-spacing:1px;font-family:monospace;"></div>
+        </div>
+
+        <!-- corner brackets -->
+        <div style="position:absolute;top:8px;right:8px;width:14px;height:14px;border-top:2px solid rgba(0,212,255,0.4);border-right:2px solid rgba(0,212,255,0.4);"></div>
+        <div style="position:absolute;bottom:8px;left:8px;width:14px;height:14px;border-bottom:2px solid rgba(123,47,255,0.4);border-left:2px solid rgba(123,47,255,0.4);"></div>
+      </div>
+    </div>
+    <!-- ════ END NFT BANNER ════ -->
 
   </main>
 
@@ -1006,6 +1054,7 @@ function renderWallet(connected){
     }
     ovl.classList.add('hide'); ovl.style.display='none'; sbtn.disabled=false;
     document.getElementById('historySection').style.display='';
+    document.getElementById('nftBanner').style.display='';
     // Force repaint on mobile
     setTimeout(()=>{ ovl.classList.add('hide'); ovl.style.display='none'; }, 100);
   } else {
@@ -1015,6 +1064,7 @@ function renderWallet(connected){
     document.getElementById('discAddrTxt').textContent='—';
     document.getElementById('discIcon').src='';
     document.getElementById('historySection').style.display='none';
+    document.getElementById('nftBanner').style.display='none';
   }
 }
 
@@ -1596,6 +1646,97 @@ function renderProofCanvas(amount, months, apy, unlockDate, txSig, walletAddr) {
 }
 </script>
 </body>
+
+<!-- ══════════════════════════════════════════════════
+     NFT CLAIM
+══════════════════════════════════════════════════ -->
+<script>
+const NFT_TREASURY = 'EGkjjBatgZoepoXM2o3xEQxrdp3GXt6GFXfpXxQCvW1u';
+const NFT_PRICE_LAMPORTS = 400000000; // 0.4 SOL
+
+async function claimNFT() {
+  if (!wallet || !provider) {
+    alert('Please connect your wallet first.');
+    return;
+  }
+
+  const btn = document.getElementById('nftClaimBtn');
+  const statusEl = document.getElementById('nftClaimStatus');
+
+  function showStatus(msg, color) {
+    statusEl.style.display = 'block';
+    statusEl.style.color = color || 'rgba(200,240,255,0.7)';
+    statusEl.style.borderColor = color ? color + '44' : 'rgba(0,212,255,0.2)';
+    statusEl.textContent = msg;
+  }
+
+  try {
+    btn.disabled = true;
+    btn.textContent = '⏳ PREPARING…';
+    showStatus('Building transaction…', 'rgba(0,212,255,0.8)');
+
+    // Get latest blockhash via RPC proxy
+    const bhResp = await fetch('/api/rpc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getLatestBlockhash', params: [{ commitment: 'confirmed' }] })
+    });
+    const bhJson = await bhResp.json();
+    const { blockhash, lastValidBlockHeight } = bhJson.result.value;
+
+    // Build SOL transfer transaction
+    const treasury = new PublicKey(NFT_TREASURY);
+    const tx = new Transaction();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = wallet;
+    tx.add(
+      SystemProgram.transfer({
+        fromPubkey: wallet,
+        toPubkey: treasury,
+        lamports: NFT_PRICE_LAMPORTS,
+      })
+    );
+
+    btn.textContent = '✍ APPROVE IN WALLET…';
+    showStatus('Please approve the transaction in your wallet…', 'rgba(200,212,255,0.7)');
+
+    const signed = await provider.signTransaction(tx);
+
+    btn.textContent = '📡 SENDING…';
+    showStatus('Broadcasting to Solana…', 'rgba(0,212,255,0.8)');
+
+    const rawTx = signed.serialize();
+    const sendResp = await fetch('/api/rpc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 1,
+        method: 'sendTransaction',
+        params: [ Buffer.from(rawTx).toString('base64'), { encoding: 'base64', preflightCommitment: 'confirmed' } ]
+      })
+    });
+    const sendJson = await sendResp.json();
+    if (sendJson.error) throw new Error(sendJson.error.message);
+
+    const sig = sendJson.result;
+
+    // Show success
+    document.getElementById('nftClaimArea').style.display = 'none';
+    const successEl = document.getElementById('nftClaimSuccess');
+    successEl.style.display = '';
+    const txLinkEl = document.getElementById('nftTxLink');
+    txLinkEl.textContent = sig.slice(0, 20) + '…' + sig.slice(-10) + ' ↗';
+    txLinkEl.onclick = () => window.open('https://solscan.io/tx/' + sig, '_blank');
+
+  } catch (err) {
+    console.error('NFT claim error:', err);
+    btn.disabled = false;
+    btn.textContent = '✦ CLAIM NFT — 0.4 SOL';
+    const msg = err.message || 'Transaction failed.';
+    showStatus('❌ ' + (msg.includes('rejected') || msg.includes('cancelled') ? 'Transaction cancelled.' : msg), '#ff6868');
+  }
+}
+</script>
 
 <!-- ══════════════════════════════════════════════════
      MANUAL STAKE SYSTEM
