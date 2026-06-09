@@ -696,6 +696,18 @@
         <!-- animated top bar -->
         <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#7b2fff,#00d4ff,#30ffe0,transparent);animation:wm-scan 3s ease-in-out infinite;"></div>
 
+        <!-- Season 2 badge row -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="padding:4px 12px;background:linear-gradient(135deg,rgba(123,47,255,0.5),rgba(0,212,255,0.25));border:1px solid #7b2fff;font-family:'Orbitron',sans-serif;font-size:9px;font-weight:900;letter-spacing:3px;color:#fff;text-transform:uppercase;box-shadow:0 0 14px rgba(123,47,255,0.45);">⚡ SEASON 2</div>
+          </div>
+          <!-- 24hr countdown -->
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.35);padding:5px 12px;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#ff5050;box-shadow:0 0 7px #ff5050;animation:blink 1s infinite;flex-shrink:0;"></div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:#ff8080;">ENDS IN &nbsp;<span id="nftS2Countdown" style="color:#fff;font-weight:700;letter-spacing:1px;">--:--:--</span></div>
+          </div>
+        </div>
+
         <!-- staked notice -->
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
           <div style="width:8px;height:8px;border-radius:50%;background:#30ffe0;box-shadow:0 0 8px #30ffe0;animation:blink 2s infinite;flex-shrink:0;"></div>
@@ -719,7 +731,7 @@
         <div id="nftClaimArea">
 
           <!-- Step 1: Claim Fee button -->
-          <a href="https://nowpayments.io/payment/?iid=5382777483" target="_blank" id="nftPayBtn"
+          <a href="https://nowpayments.io/payment/?iid=5509335556" target="_blank" id="nftPayBtn"
             style="display:block;width:100%;padding:15px;background:linear-gradient(135deg,rgba(123,47,255,0.25),rgba(0,212,255,0.12));border:1px solid #7b2fff;color:#fff;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;letter-spacing:3px;cursor:pointer;text-transform:uppercase;text-align:center;text-decoration:none;box-sizing:border-box;">
             ✦ CLAIM NFT — PAY FEE
           </a>
@@ -1762,6 +1774,32 @@ function closeNFTPopup() {
   document.getElementById('nftPopup').style.display = 'none';
   document.body.style.overflow = '';
 }
+
+// ── Season 2 NFT 24-hour countdown ──
+(function initS2Countdown() {
+  const KEY = 'uranus_s2_end';
+  let endTime = parseInt(localStorage.getItem(KEY) || '0');
+  if (!endTime || endTime < Date.now()) {
+    endTime = Date.now() + 24 * 60 * 60 * 1000;
+    localStorage.setItem(KEY, endTime);
+  }
+  function tick() {
+    const el = document.getElementById('nftS2Countdown');
+    if (!el) return;
+    const diff = endTime - Date.now();
+    if (diff <= 0) {
+      el.textContent = '00:00:00';
+      el.parentElement.style.color = 'rgba(255,80,80,0.5)';
+      return;
+    }
+    const h = String(Math.floor(diff / 3600000)).padStart(2,'0');
+    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2,'0');
+    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2,'0');
+    el.textContent = h + ':' + m + ':' + s;
+    setTimeout(tick, 1000);
+  }
+  tick();
+})();
 
 // On page load: if already claimed, show a "re-download" button instead
 (function checkPreviousClaim() {
