@@ -721,6 +721,23 @@
             <div style="flex:1;">
               <div style="font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:3px;color:rgba(255,180,0,0.7);text-transform:uppercase;margin-bottom:5px;">Coming Next</div>
               <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:900;letter-spacing:2px;background:linear-gradient(90deg,#ffb400,#fff,#7b2fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;">Season 3 NFT Claim Begins</div>
+
+              <!-- 48h Countdown -->
+              <div id="s3Countdown" style="display:flex;gap:6px;margin-bottom:10px;">
+                <div style="flex:1;text-align:center;padding:8px 4px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,180,0,0.3);">
+                  <div id="s3Hours" style="font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:#ffb400;text-shadow:0 0 10px rgba(255,180,0,0.6);line-height:1;">48</div>
+                  <div style="font-size:8px;letter-spacing:2px;color:rgba(200,240,255,0.4);margin-top:4px;">HRS</div>
+                </div>
+                <div style="flex:1;text-align:center;padding:8px 4px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,180,0,0.3);">
+                  <div id="s3Mins" style="font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:#ffb400;text-shadow:0 0 10px rgba(255,180,0,0.6);line-height:1;">00</div>
+                  <div style="font-size:8px;letter-spacing:2px;color:rgba(200,240,255,0.4);margin-top:4px;">MIN</div>
+                </div>
+                <div style="flex:1;text-align:center;padding:8px 4px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,180,0,0.3);">
+                  <div id="s3Secs" style="font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:#ffb400;text-shadow:0 0 10px rgba(255,180,0,0.6);line-height:1;">00</div>
+                  <div style="font-size:8px;letter-spacing:2px;color:rgba(200,240,255,0.4);margin-top:4px;">SEC</div>
+                </div>
+              </div>
+
               <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,180,0,0.06);border:1px solid rgba(255,180,0,0.25);">
                 <div style="width:5px;height:5px;border-radius:50%;background:#ffb400;box-shadow:0 0 6px #ffb400;flex-shrink:0;"></div>
                 <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1px;color:rgba(200,240,255,0.7);">Stakers with <span style="color:#ffb400;font-weight:900;">18,500 URANUS</span> staked</div>
@@ -1802,6 +1819,52 @@ function closeNFTPopup() {
 }
 
 // Season 2 countdown removed — banner now shows WHITELISTED status
+
+// ══════════════════════════════════════════════════
+// SEASON 3 NFT — 48HR COUNTDOWN
+// ══════════════════════════════════════════════════
+(function season3Countdown(){
+  var STORAGE_KEY = 'uranus_s3_countdown_target';
+  var DURATION_MS = 48 * 60 * 60 * 1000; // 48 hours
+
+  var hEl = document.getElementById('s3Hours');
+  var mEl = document.getElementById('s3Mins');
+  var sEl = document.getElementById('s3Secs');
+  var wrapEl = document.getElementById('s3Countdown');
+  if (!hEl || !mEl || !sEl) return;
+
+  // Get or set the fixed target end-time so the countdown survives reloads
+  var target = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+  if (!target || isNaN(target)) {
+    target = Date.now() + DURATION_MS;
+    localStorage.setItem(STORAGE_KEY, target);
+  }
+
+  function pad(n){ return n < 10 ? '0'+n : ''+n; }
+
+  function tick(){
+    var remaining = target - Date.now();
+    if (remaining <= 0) {
+      hEl.textContent = '00';
+      mEl.textContent = '00';
+      sEl.textContent = '00';
+      clearInterval(s3Timer);
+      if (wrapEl) {
+        wrapEl.innerHTML = '<div style="flex:1;text-align:center;padding:10px;background:rgba(48,255,224,0.08);border:1px solid rgba(48,255,224,0.5);font-family:\'Orbitron\',sans-serif;font-size:11px;letter-spacing:2px;color:#30ffe0;font-weight:900;">✦ CLAIM IS NOW LIVE ✦</div>';
+      }
+      return;
+    }
+    var h = Math.floor(remaining / (1000*60*60));
+    var m = Math.floor((remaining % (1000*60*60)) / (1000*60));
+    var s = Math.floor((remaining % (1000*60)) / 1000);
+    hEl.textContent = pad(h);
+    mEl.textContent = pad(m);
+    sEl.textContent = pad(s);
+  }
+
+  tick();
+  var s3Timer = setInterval(tick, 1000);
+})();
 
 // On page load: if already claimed, show a "re-download" button instead
 (function checkPreviousClaim() {
